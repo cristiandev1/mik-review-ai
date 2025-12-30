@@ -13,7 +13,7 @@ async function run() {
         const geminiApiKey = core.getInput('gemini_api_key') || process.env.GEMINI_API_KEY || '';
         const githubToken = core.getInput('github_token') || process.env.GITHUB_TOKEN || '';
         const rulesFilePath = core.getInput('rules_file') || '.review-rules.md';
-        let modelName = core.getInput('model_name') || 'gemini-2.0-flash';
+        let modelName = core.getInput('model_name') || 'gemini-1.5-flash';
 
         core.info(`Provider: Gemini`);
         core.info(`Model: ${modelName}`);

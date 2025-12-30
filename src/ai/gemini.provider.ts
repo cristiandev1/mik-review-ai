@@ -10,7 +10,7 @@ export class GeminiProvider implements AIProvider {
     }
 
     async reviewCode(params: ReviewParams): Promise<ReviewResult> {
-        const { diff, instructions, model = 'gemini-2.0-flash' } = params;
+        const { diff, instructions, model = 'gemini-1.5-flash' } = params;
 
         const systemPrompt = `
 You are an expert Senior Software Engineer performing a code review.

@@ -32970,7 +32970,7 @@ class GeminiProvider {
         this.genAI = new generative_ai_1.GoogleGenerativeAI(apiKey);
     }
     async reviewCode(params) {
-        const { diff, instructions, model = 'gemini-2.0-flash' } = params;
+        const { diff, instructions, model = 'gemini-1.5-flash' } = params;
         const systemPrompt = `
 You are an expert Senior Software Engineer performing a code review.
 Your goal is to review the provided code DIFF based strictly on the provided INSTRUCTIONS.
@@ -33242,7 +33242,7 @@ async function run() {
         const geminiApiKey = core.getInput('gemini_api_key') || process.env.GEMINI_API_KEY || '';
         const githubToken = core.getInput('github_token') || process.env.GITHUB_TOKEN || '';
         const rulesFilePath = core.getInput('rules_file') || '.review-rules.md';
-        let modelName = core.getInput('model_name') || 'gemini-2.0-flash';
+        let modelName = core.getInput('model_name') || 'gemini-1.5-flash';
         core.info(`Provider: Gemini`);
         core.info(`Model: ${modelName}`);
         if (!githubToken) {
