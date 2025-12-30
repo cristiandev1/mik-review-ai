@@ -21,12 +21,25 @@ Your goal is to review the provided code DIFF based strictly on the provided INS
 INSTRUCTIONS:
 ${instructions}
 
+OUTPUT FORMAT:
+You must respond with a valid JSON object in the following format:
+{
+  "summary": "A markdown summary of the review.",
+  "comments": [
+    {
+      "file": "path/to/file.ts",
+      "lineNumber": "10",
+      "comment": "The review comment for this specific line."
+    }
+  ]
+}
+
 GUIDELINES:
-1. Focus on bugs, security vulnerabilities, performance issues, and adherence to the provided instructions.
-2. Be objective, direct, and constructive.
-3. DO NOT use emojis in your response.
-4. If the code is good and meets the requirements, simply say "LGTM" or provide positive feedback concisely.
-5. Format your response in Markdown.
+1. "lineNumber" must be the line number in the NEW file (the right side of the diff) where the issue is located.
+2. "file" must exactly match the file path in the diff header (e.g., "src/index.ts").
+3. Only add comments for specific issues (bugs, security, performance).
+4. If there are no issues, "comments" should be empty and "summary" should be "LGTM".
+5. Do not use emojis.
 `;
 
         try {
@@ -37,12 +50,21 @@ GUIDELINES:
                     { role: 'user', content: `Here is the git diff of the changes:\n\n${diff}` }
                 ],
                 temperature: 0.2,
+                response_format: { type: "json_object" }
             });
 
-            const review = response.choices[0]?.message?.content || '';
+            const content = response.choices[0]?.message?.content || '{}';
+            let parsed;
+            try {
+                parsed = JSON.parse(content);
+            } catch (e) {
+                core.warning('Failed to parse JSON response from OpenAI. Falling back to raw text.');
+                return { review: content };
+            }
 
             return {
-                review: review
+                review: parsed.summary || 'No summary provided.',
+                comments: parsed.comments || []
             };
 
         } catch (error: any) {

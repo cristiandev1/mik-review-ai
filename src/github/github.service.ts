@@ -63,4 +63,45 @@ export class GitHubService {
             throw error;
         }
     }
+
+    async postReview(summary: string, comments: Array<{ file: string; lineNumber: string; comment: string }>): Promise<void> {
+        const pull_request = this.context.payload.pull_request;
+
+        if (!pull_request) {
+            throw new Error('No pull request context found.');
+        }
+
+        const { owner, repo } = this.context.repo;
+        const pull_number = pull_request.number;
+
+        // Filter out invalid comments (e.g. missing line number)
+        const validComments = comments
+            .filter(c => c.file && c.lineNumber && !isNaN(parseInt(c.lineNumber)))
+            .map(c => ({
+                path: c.file,
+                line: parseInt(c.lineNumber),
+                body: c.comment,
+            }));
+
+        try {
+            if (validComments.length > 0) {
+                await this.octokit.rest.pulls.createReview({
+                    owner,
+                    repo,
+                    pull_number,
+                    body: summary,
+                    event: 'COMMENT',
+                    comments: validComments
+                });
+                core.info(`Review posted on PR #${pull_number} with ${validComments.length} inline comments.`);
+            } else {
+                // If no inline comments are valid/present, just post the summary as a general comment
+                await this.postComment(summary);
+            }
+        } catch (error) {
+            core.error(`Failed to post review: ${error}`);
+            // Fallback: post everything as a general comment if review fails (e.g., bad line numbers)
+            await this.postComment(`${summary}\n\n**Note:** Failed to post inline comments. Here are the details:\n${JSON.stringify(comments, null, 2)}`);
+        }
+    }
 }
