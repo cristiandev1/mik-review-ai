@@ -20,4 +20,4 @@ jobs:
           gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           rules_file: '.review-rules.md'
-          model_name: 'gemini-2.0-flash'
+          model_name: 'gemini-1.5-flash'
