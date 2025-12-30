@@ -10,14 +10,16 @@ dotenv.config();
 async function run() {
     try {
         // 1. Get Inputs
+        let provider = (core.getInput('provider') || process.env.AI_PROVIDER || 'gemini').toLowerCase();
         const openaiApiKey = core.getInput('openai_api_key') || process.env.OPENAI_API_KEY;
+        const geminiApiKey = core.getInput('gemini_api_key') || process.env.GEMINI_API_KEY;
         const githubToken = core.getInput('github_token') || process.env.GITHUB_TOKEN;
         const rulesFilePath = core.getInput('rules_file') || '.review-rules.md';
-        const modelName = core.getInput('model_name') || 'gpt-4o';
+        let modelName = core.getInput('model_name');
 
-        if (!openaiApiKey) {
-            throw new Error('OpenAI API Key is required (input: openai_api_key or env: OPENAI_API_KEY)');
-        }
+        core.info(`[DEBUG] Raw Inputs - Provider: ${core.getInput('provider')}, Model: ${modelName}`);
+        core.info(`[DEBUG] Resolved Provider: ${provider}`);
+        
         if (!githubToken) {
             throw new Error('GitHub Token is required (input: github_token or env: GITHUB_TOKEN)');
         }
