@@ -13,6 +13,7 @@
   "dependencies": {
     "@actions/core": "^2.0.1",
     "@actions/github": "^6.0.1",
+    "@google/generative-ai": "^0.24.1",
     "@octokit/rest": "^22.0.1",
     "@types/node": "^25.0.3",
     "dotenv": "^17.2.3",
