@@ -18,7 +18,7 @@ async function run() {
         let modelName = core.getInput('model_name');
 
         const rawProvider = core.getInput('provider');
-        core.info(`[DEBUG] Raw Inputs - Provider: ${rawProvider || 'undefined'}, Model: ${modelName}`);
+        core.info(`[DEBUG] Raw Inputs - Provider: ${rawProvider || 'undefined'}, Model: ${modelName || 'default'}`);
         core.info(`[DEBUG] Resolved Provider: ${provider}`);
         
         if (!githubToken) {
