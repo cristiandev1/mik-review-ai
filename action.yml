@@ -1,9 +1,9 @@
 name: 'Mik Review AI'
-description: 'Automated code review using Google Gemini'
+description: 'Automated code review using OpenAI'
 author: 'Cristian Castro'
 inputs:
-  gemini_api_key:
-    description: 'Google Gemini API Key'
+  openai_api_key:
+    description: 'OpenAI API Key'
     required: true
   github_token:
     description: 'GitHub Token to post comments'
@@ -13,9 +13,9 @@ inputs:
     required: false
     default: '.review-rules.md'
   model_name:
-    description: 'The Gemini model to use (e.g., gemini-1.5-flash)'
+    description: 'The OpenAI model to use (e.g., gpt-4o, gpt-3.5-turbo)'
     required: false
-    default: 'gemini-1.5-flash'
+    default: 'gpt-4o'
 runs:
   using: 'node20'
   main: 'dist/index.js'
