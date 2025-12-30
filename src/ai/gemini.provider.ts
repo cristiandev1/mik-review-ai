@@ -46,14 +46,32 @@ GUIDELINES:
         }
     }
 
-    private async generateWithRetry(model: any, prompt: string, retries = 3, delay = 2000): Promise<any> {
+    private async generateWithRetry(model: any, prompt: string, retries = 5, initialDelay = 4000): Promise<any> {
         try {
             return await model.generateContent(prompt);
         } catch (error: any) {
             if (retries > 0 && (error.message.includes('429') || error.message.includes('Quota exceeded'))) {
-                core.warning(`Rate limit hit. Retrying in ${delay / 1000} seconds... (${retries} attempts left)`);
-                await new Promise(resolve => setTimeout(resolve, delay));
-                return this.generateWithRetry(model, prompt, retries - 1, delay * 2);
+                let waitTime = initialDelay;
+                
+                // Try to extract the requested wait time from the error message
+                // Example match: "Please retry in 45.176511119s."
+                const retryMatch = error.message.match(/retry in ([0-9.]+)s/);
+                if (retryMatch && retryMatch[1]) {
+                    const seconds = parseFloat(retryMatch[1]);
+                    // Add a small buffer of 1 second to be safe
+                    waitTime = Math.ceil(seconds * 1000) + 1000;
+                    core.info(`Rate limit detected. API requested wait: ${seconds}s. Waiting ${waitTime/1000}s...`);
+                } else {
+                    core.warning(`Rate limit hit. Retrying in ${waitTime / 1000} seconds... (${retries} attempts left)`);
+                }
+
+                await new Promise(resolve => setTimeout(resolve, waitTime));
+                
+                // If we found a specific time, we use the initialDelay for the next loop (or we could keep using backoff)
+                // For exponential backoff on generic errors:
+                const nextDelay = retryMatch ? initialDelay : initialDelay * 2;
+                
+                return this.generateWithRetry(model, prompt, retries - 1, nextDelay);
             }
             throw error;
         }
