@@ -13,9 +13,13 @@ inputs:
     required: false
     default: '.review-rules.md'
   model_name:
-    description: 'The OpenAI model to use (e.g., gpt-4o, gpt-3.5-turbo)'
+    description: 'The model to use (e.g., gpt-4o, gemini-2.0-flash)'
     required: false
-    default: 'gpt-4o'
+    default: 'gemini-2.0-flash'
+  provider:
+    description: 'AI Provider to use (openai or gemini)'
+    required: false
+    default: 'gemini'
 runs:
   using: 'node20'
   main: 'dist/index.js'
