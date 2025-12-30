@@ -5,8 +5,15 @@ export interface ReviewParams {
     model?: string;
 }
 
+export interface ReviewComment {
+    file: string;
+    lineNumber: string; // The line number in the new file
+    comment: string;
+}
+
 export interface ReviewResult {
-    review: string; // The full review text
+    review: string; // The full review text (summary)
+    comments?: ReviewComment[]; // Structured comments for inline review
 }
 
 export interface AIProvider {

@@ -31430,6 +31430,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.OpenAIProvider = void 0;
 const openai_1 = __importDefault(__nccwpck_require__(2583));
 const core = __importStar(__nccwpck_require__(7484));
+const diff_parser_1 = __nccwpck_require__(1957);
 class OpenAIProvider {
     constructor(apiKey) {
         this.openai = new openai_1.default({
@@ -31438,32 +31439,63 @@ class OpenAIProvider {
     }
     async reviewCode(params) {
         const { diff, instructions, model = 'gpt-4o' } = params;
-        const systemPrompt = `
-You are an expert Senior Software Engineer performing a code review.
-Your goal is to review the provided code DIFF based strictly on the provided INSTRUCTIONS.
-
-INSTRUCTIONS:
-${instructions}
-
-GUIDELINES:
-1. Focus on bugs, security vulnerabilities, performance issues, and adherence to the provided instructions.
-2. Be objective, direct, and constructive.
-3. DO NOT use emojis in your response.
-4. If the code is good and meets the requirements, simply say "LGTM" or provide positive feedback concisely.
-5. Format your response in Markdown.
-`;
+        // 1. Parse the diff into a numbered format to help the AI identify line numbers correctly.
+        const parsedFiles = diff_parser_1.DiffParser.parse(diff);
+        const numberedDiff = diff_parser_1.DiffParser.formatForAI(parsedFiles);
+        const exampleComment = [
+            '{',
+            '  "file": "path/to/file.ts",',
+            '  "lineNumber": "10",',
+            '  "comment": "Explanation of the issue.\n\n```typescript\n// Suggested Fix\nconst safeValue = ...\n```"',
+            '}'
+        ].join('\n');
+        const systemPrompt = [
+            'You are an expert Senior Software Engineer performing a code review.',
+            'Your goal is to review the provided code DIFF based strictly on the provided INSTRUCTIONS.',
+            '',
+            'INSTRUCTIONS:',
+            instructions,
+            '',
+            'OUTPUT FORMAT:',
+            'You must respond with a valid JSON object in the following format:',
+            '{',
+            '  "summary": "A markdown summary of the review.",',
+            '  "comments": [',
+            exampleComment,
+            '  ]',
+            '}',
+            '',
+            'GUIDELINES:',
+            '1. **CRITICAL:** Use the line numbers provided in the "Numbered Diff" view. The number at the beginning of the line (e.g., "15 | + code") is the "lineNumber" you must use.',
+            '2. "file" must exactly match the file path in the diff header.',
+            '3. **CRITICAL:** Only add comments for lines that are marked with "+" (ADDED lines) or are part of the new code block. Do NOT comment on lines marked with "-".',
+            '4. **CRITICAL:** For every issue identified, provide a CONCRETE CODE SUGGESTION (a fix) using a markdown code block inside the "comment" field. Do not just describe the error; show how to fix it.',
+            '5. Only add comments for specific issues (bugs, security, performance).',
+            '6. If there are no issues, "comments" should be empty and "summary" should be "LGTM".',
+            '7. Do not use emojis.'
+        ].join('\n');
         try {
             const response = await this.openai.chat.completions.create({
                 model: model,
                 messages: [
                     { role: 'system', content: systemPrompt },
-                    { role: 'user', content: `Here is the git diff of the changes:\n\n${diff}` }
+                    { role: 'user', content: `Here is the numbered git diff of the changes:\n\n${numberedDiff}` }
                 ],
                 temperature: 0.2,
+                response_format: { type: "json_object" }
             });
-            const review = response.choices[0]?.message?.content || '';
+            const content = response.choices[0]?.message?.content || '{}';
+            let parsed;
+            try {
+                parsed = JSON.parse(content);
+            }
+            catch (e) {
+                core.warning('Failed to parse JSON response from OpenAI. Falling back to raw text.');
+                return { review: content };
+            }
             return {
-                review: review
+                review: parsed.summary || 'No summary provided.',
+                comments: parsed.comments || []
             };
         }
         catch (error) {
@@ -31626,6 +31658,45 @@ class GitHubService {
             throw error;
         }
     }
+    async postReview(summary, comments) {
+        const pull_request = this.context.payload.pull_request;
+        if (!pull_request) {
+            throw new Error('No pull request context found.');
+        }
+        const { owner, repo } = this.context.repo;
+        const pull_number = pull_request.number;
+        // Filter out invalid comments (e.g. missing line number)
+        const validComments = comments
+            .filter(c => c.file && c.lineNumber && !isNaN(parseInt(c.lineNumber)))
+            .map(c => ({
+            path: c.file,
+            line: parseInt(c.lineNumber),
+            side: 'RIGHT',
+            body: c.comment,
+        }));
+        try {
+            if (validComments.length > 0) {
+                await this.octokit.rest.pulls.createReview({
+                    owner,
+                    repo,
+                    pull_number,
+                    body: summary,
+                    event: 'COMMENT',
+                    comments: validComments
+                });
+                core.info(`Review posted on PR #${pull_number} with ${validComments.length} inline comments.`);
+            }
+            else {
+                // If no inline comments are valid/present, just post the summary as a general comment
+                await this.postComment(summary);
+            }
+        }
+        catch (error) {
+            core.error(`Failed to post review: ${error}`);
+            // Fallback: post everything as a general comment if review fails (e.g., bad line numbers)
+            await this.postComment(`${summary}\n\n**Note:** Failed to post inline comments. Here are the details:\n${JSON.stringify(comments, null, 2)}`);
+        }
+    }
 }
 exports.GitHubService = GitHubService;
 
@@ -31721,10 +31792,10 @@ async function run() {
             instructions: rulesContent,
             model: modelName
         });
-        // 6. Post Comment
-        core.info('Posting review comment to GitHub...');
-        const commentBody = `## 🤖 AI Code Review\n\n${reviewResult.review}\n\n---\n*Generated by mik-review-ai using OpenAI*`;
-        await githubService.postComment(commentBody);
+        // 6. Post Review (Inline Comments + Summary)
+        core.info('Posting review to GitHub...');
+        const summary = `## 🤖 AI Code Review\n\n${reviewResult.review}\n\n---\n*Generated by mik-review-ai using OpenAI*`;
+        await githubService.postReview(summary, reviewResult.comments || []);
         core.info('Review completed successfully.');
     }
     catch (error) {
@@ -31737,6 +31808,137 @@ async function run() {
     }
 }
 run();
+
+
+/***/ }),
+
+/***/ 1957:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.DiffParser = void 0;
+class DiffParser {
+    static parse(diff) {
+        const files = [];
+        let currentFile = null;
+        let currentHunk = null;
+        // Regex to match file headers
+        // diff --git a/path/to/file b/path/to/file
+        // +++ b/path/to/file
+        const fileHeaderRegex = /^diff --git a\/(.*) b\/(.*)$/; // Escaped backslash for regex
+        const newFileHeaderRegex = /^\+\+\+ b\/(.*)$/; // Escaped backslash for regex
+        const hunkHeaderRegex = /^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/; // Escaped backslash for regex
+        const lines = diff.split('\n');
+        let oldLineCounter = 0;
+        let newLineCounter = 0;
+        for (const line of lines) {
+            // Check for new file
+            if (line.startsWith('diff --git')) {
+                if (currentFile && currentHunk) {
+                    currentFile.hunks.push(currentHunk);
+                    currentHunk = null;
+                }
+                if (currentFile) {
+                    files.push(currentFile);
+                }
+                const match = line.match(fileHeaderRegex);
+                const filePath = match ? match[2] : 'unknown';
+                currentFile = { path: filePath, hunks: [] };
+                continue;
+            }
+            // Fallback file detection
+            if (line.startsWith('+++ b/')) {
+                const match = line.match(newFileHeaderRegex);
+                if (match && currentFile && currentFile.path === 'unknown') {
+                    currentFile.path = match[1];
+                }
+                continue;
+            }
+            // Hunk Header
+            if (line.startsWith('@@')) {
+                if (currentFile && currentHunk) {
+                    currentFile.hunks.push(currentHunk);
+                }
+                const match = line.match(hunkHeaderRegex);
+                if (match) {
+                    // Group 3 is the start line of the new file
+                    newLineCounter = parseInt(match[3], 10);
+                    // Group 1 is the start line of the old file
+                    oldLineCounter = parseInt(match[1], 10);
+                    currentHunk = {
+                        header: line,
+                        lines: []
+                    };
+                }
+                continue;
+            }
+            // Content Lines
+            if (currentHunk) {
+                if (line.startsWith('+') && !line.startsWith('+++')) {
+                    currentHunk.lines.push({
+                        type: 'ADD',
+                        content: line.substring(1),
+                        newLineNumber: newLineCounter++
+                    });
+                }
+                else if (line.startsWith('-') && !line.startsWith('---')) {
+                    currentHunk.lines.push({
+                        type: 'DEL',
+                        content: line.substring(1),
+                        oldLineNumber: oldLineCounter++
+                    });
+                }
+                else if (line.charCodeAt(0) === 92) { // Corrected: Use charCodeAt for backslash check
+                    // "No newline at end of file" - ignore
+                    continue;
+                }
+                else {
+                    // Context
+                    if (!line.startsWith('diff') && !line.startsWith('index')) {
+                        currentHunk.lines.push({
+                            type: 'CONTEXT',
+                            content: line.startsWith(' ') ? line.substring(1) : line,
+                            newLineNumber: newLineCounter++,
+                            oldLineNumber: oldLineCounter++
+                        });
+                    }
+                }
+            }
+        }
+        if (currentFile && currentHunk) {
+            currentFile.hunks.push(currentHunk);
+        }
+        if (currentFile) {
+            files.push(currentFile);
+        }
+        return files;
+    }
+    static formatForAI(files) {
+        let output = '';
+        for (const file of files) {
+            output += `File: ${file.path}\n`;
+            for (const hunk of file.hunks) {
+                output += `... (hunk header: ${hunk.header})\n`;
+                for (const line of hunk.lines) {
+                    if (line.type === 'ADD') {
+                        output += `${line.newLineNumber} | + ${line.content}\n`;
+                    }
+                    else if (line.type === 'DEL') {
+                        output += `   | - ${line.content}\n`;
+                    }
+                    else {
+                        output += `${line.newLineNumber} |   ${line.content}\n`;
+                    }
+                }
+            }
+            output += '\n';
+        }
+        return output;
+    }
+}
+exports.DiffParser = DiffParser;
 
 
 /***/ }),
