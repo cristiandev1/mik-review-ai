@@ -41,10 +41,11 @@ export class OpenAIProvider implements AIProvider {
             'GUIDELINES:',
             '1. "lineNumber" must be the line number in the NEW file (the right side of the diff) where the issue is located.',
             '2. "file" must exactly match the file path in the diff header.',
-            '3. **CRITICAL:** For every issue identified, provide a CONCRETE CODE SUGGESTION (a fix) using a markdown code block inside the "comment" field. Do not just describe the error; show how to fix it.',
-            '4. Only add comments for specific issues (bugs, security, performance).',
-            '5. If there are no issues, "comments" should be empty and "summary" should be "LGTM".',
-            '6. Do not use emojis.'
+            '3. **CRITICAL:** Only add comments for lines that are CHANGED or ADDED in the diff. Do not comment on context lines.',
+            '4. **CRITICAL:** For every issue identified, provide a CONCRETE CODE SUGGESTION (a fix) using a markdown code block inside the "comment" field. Do not just describe the error; show how to fix it.',
+            '5. Only add comments for specific issues (bugs, security, performance).',
+            '6. If there are no issues, "comments" should be empty and "summary" should be "LGTM".',
+            '7. Do not use emojis.'
         ].join('\n');
 
         try {

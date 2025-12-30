@@ -80,6 +80,7 @@ export class GitHubService {
             .map(c => ({
                 path: c.file,
                 line: parseInt(c.lineNumber),
+                side: 'RIGHT',
                 body: c.comment,
             }));
 
