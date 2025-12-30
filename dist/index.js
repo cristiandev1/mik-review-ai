@@ -31430,6 +31430,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.OpenAIProvider = void 0;
 const openai_1 = __importDefault(__nccwpck_require__(2583));
 const core = __importStar(__nccwpck_require__(7484));
+const diff_parser_1 = __nccwpck_require__(1957);
 class OpenAIProvider {
     constructor(apiKey) {
         this.openai = new openai_1.default({
@@ -31438,6 +31439,9 @@ class OpenAIProvider {
     }
     async reviewCode(params) {
         const { diff, instructions, model = 'gpt-4o' } = params;
+        // 1. Parse the diff into a numbered format to help the AI identify line numbers correctly.
+        const parsedFiles = diff_parser_1.DiffParser.parse(diff);
+        const numberedDiff = diff_parser_1.DiffParser.formatForAI(parsedFiles);
         const exampleComment = [
             '{',
             '  "file": "path/to/file.ts",',
@@ -31462,9 +31466,9 @@ class OpenAIProvider {
             '}',
             '',
             'GUIDELINES:',
-            '1. "lineNumber" must be the line number in the NEW file (the right side of the diff) where the issue is located.',
+            '1. **CRITICAL:** Use the line numbers provided in the "Numbered Diff" view. The number at the beginning of the line (e.g., "15 | + code") is the "lineNumber" you must use.',
             '2. "file" must exactly match the file path in the diff header.',
-            '3. **CRITICAL:** Only add comments for lines that are CHANGED or ADDED in the diff. Do not comment on context lines.',
+            '3. **CRITICAL:** Only add comments for lines that are marked with "+" (ADDED lines) or are part of the new code block. Do NOT comment on lines marked with "-".',
             '4. **CRITICAL:** For every issue identified, provide a CONCRETE CODE SUGGESTION (a fix) using a markdown code block inside the "comment" field. Do not just describe the error; show how to fix it.',
             '5. Only add comments for specific issues (bugs, security, performance).',
             '6. If there are no issues, "comments" should be empty and "summary" should be "LGTM".',
@@ -31475,7 +31479,7 @@ class OpenAIProvider {
                 model: model,
                 messages: [
                     { role: 'system', content: systemPrompt },
-                    { role: 'user', content: `Here is the git diff of the changes:\n\n${diff}` }
+                    { role: 'user', content: `Here is the numbered git diff of the changes:\n\n${numberedDiff}` }
                 ],
                 temperature: 0.2,
                 response_format: { type: "json_object" }
@@ -31804,6 +31808,137 @@ async function run() {
     }
 }
 run();
+
+
+/***/ }),
+
+/***/ 1957:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.DiffParser = void 0;
+class DiffParser {
+    static parse(diff) {
+        const files = [];
+        let currentFile = null;
+        let currentHunk = null;
+        // Regex to match file headers
+        // diff --git a/path/to/file b/path/to/file
+        // +++ b/path/to/file
+        const fileHeaderRegex = /^diff --git a\/(.*) b\/(.*)$/; // Escaped backslash for regex
+        const newFileHeaderRegex = /^\+\+\+ b\/(.*)$/; // Escaped backslash for regex
+        const hunkHeaderRegex = /^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/; // Escaped backslash for regex
+        const lines = diff.split('\n');
+        let oldLineCounter = 0;
+        let newLineCounter = 0;
+        for (const line of lines) {
+            // Check for new file
+            if (line.startsWith('diff --git')) {
+                if (currentFile && currentHunk) {
+                    currentFile.hunks.push(currentHunk);
+                    currentHunk = null;
+                }
+                if (currentFile) {
+                    files.push(currentFile);
+                }
+                const match = line.match(fileHeaderRegex);
+                const filePath = match ? match[2] : 'unknown';
+                currentFile = { path: filePath, hunks: [] };
+                continue;
+            }
+            // Fallback file detection
+            if (line.startsWith('+++ b/')) {
+                const match = line.match(newFileHeaderRegex);
+                if (match && currentFile && currentFile.path === 'unknown') {
+                    currentFile.path = match[1];
+                }
+                continue;
+            }
+            // Hunk Header
+            if (line.startsWith('@@')) {
+                if (currentFile && currentHunk) {
+                    currentFile.hunks.push(currentHunk);
+                }
+                const match = line.match(hunkHeaderRegex);
+                if (match) {
+                    // Group 3 is the start line of the new file
+                    newLineCounter = parseInt(match[3], 10);
+                    // Group 1 is the start line of the old file
+                    oldLineCounter = parseInt(match[1], 10);
+                    currentHunk = {
+                        header: line,
+                        lines: []
+                    };
+                }
+                continue;
+            }
+            // Content Lines
+            if (currentHunk) {
+                if (line.startsWith('+') && !line.startsWith('+++')) {
+                    currentHunk.lines.push({
+                        type: 'ADD',
+                        content: line.substring(1),
+                        newLineNumber: newLineCounter++
+                    });
+                }
+                else if (line.startsWith('-') && !line.startsWith('---')) {
+                    currentHunk.lines.push({
+                        type: 'DEL',
+                        content: line.substring(1),
+                        oldLineNumber: oldLineCounter++
+                    });
+                }
+                else if (line.charCodeAt(0) === 92) { // Corrected: Use charCodeAt for backslash check
+                    // "No newline at end of file" - ignore
+                    continue;
+                }
+                else {
+                    // Context
+                    if (!line.startsWith('diff') && !line.startsWith('index')) {
+                        currentHunk.lines.push({
+                            type: 'CONTEXT',
+                            content: line.startsWith(' ') ? line.substring(1) : line,
+                            newLineNumber: newLineCounter++,
+                            oldLineNumber: oldLineCounter++
+                        });
+                    }
+                }
+            }
+        }
+        if (currentFile && currentHunk) {
+            currentFile.hunks.push(currentHunk);
+        }
+        if (currentFile) {
+            files.push(currentFile);
+        }
+        return files;
+    }
+    static formatForAI(files) {
+        let output = '';
+        for (const file of files) {
+            output += `File: ${file.path}\n`;
+            for (const hunk of file.hunks) {
+                output += `... (hunk header: ${hunk.header})\n`;
+                for (const line of hunk.lines) {
+                    if (line.type === 'ADD') {
+                        output += `${line.newLineNumber} | + ${line.content}\n`;
+                    }
+                    else if (line.type === 'DEL') {
+                        output += `   | - ${line.content}\n`;
+                    }
+                    else {
+                        output += `${line.newLineNumber} |   ${line.content}\n`;
+                    }
+                }
+            }
+            output += '\n';
+        }
+        return output;
+    }
+}
+exports.DiffParser = DiffParser;
 
 
 /***/ }),
