@@ -13,7 +13,7 @@ export class OpenAIProvider implements AIProvider {
     }
 
     async reviewCode(params: ReviewParams): Promise<ReviewResult> {
-        const { diff, instructions, model = 'gpt-4o' } = params;
+        const { diff, instructions, model = 'gpt-4o-mini' } = params;
 
         // 1. Parse the diff into a numbered format to help the AI identify line numbers correctly.
         const parsedFiles = DiffParser.parse(diff);
