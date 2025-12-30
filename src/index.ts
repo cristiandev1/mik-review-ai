@@ -17,7 +17,8 @@ async function run() {
         const rulesFilePath = core.getInput('rules_file') || '.review-rules.md';
         let modelName = core.getInput('model_name');
 
-        core.info(`[DEBUG] Raw Inputs - Provider: ${core.getInput('provider')}, Model: ${modelName}`);
+        const rawProvider = core.getInput('provider');
+        core.info(`[DEBUG] Raw Inputs - Provider: ${rawProvider || 'undefined'}, Model: ${modelName}`);
         core.info(`[DEBUG] Resolved Provider: ${provider}`);
         
         if (!githubToken) {
