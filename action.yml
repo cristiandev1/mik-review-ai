@@ -3,8 +3,11 @@ description: 'Automated code review using OpenAI'
 author: 'Cristian Castro'
 inputs:
   openai_api_key:
-    description: 'OpenAI API Key'
-    required: true
+    description: 'OpenAI API Key (required if provider is openai)'
+    required: false
+  gemini_api_key:
+    description: 'Google Gemini API Key (required if provider is gemini)'
+    required: false
   github_token:
     description: 'GitHub Token to post comments'
     required: true
