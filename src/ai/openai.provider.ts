@@ -14,33 +14,38 @@ export class OpenAIProvider implements AIProvider {
     async reviewCode(params: ReviewParams): Promise<ReviewResult> {
         const { diff, instructions, model = 'gpt-4o' } = params;
 
-        const systemPrompt = `
-You are an expert Senior Software Engineer performing a code review.
-Your goal is to review the provided code DIFF based strictly on the provided INSTRUCTIONS.
+        const exampleComment = [
+            '{',
+            '  "file": "path/to/file.ts",',
+            '  "lineNumber": "10",',
+            '  "comment": "Explanation of the issue.\n\n```typescript\n// Suggested Fix\nconst safeValue = ...\n```"',
+            '}'
+        ].join('\n');
 
-INSTRUCTIONS:
-${instructions}
-
-OUTPUT FORMAT:
-You must respond with a valid JSON object in the following format:
-{
-  "summary": "A markdown summary of the review.",
-  "comments": [
-    {
-      "file": "path/to/file.ts",
-      "lineNumber": "10",
-      "comment": "The review comment for this specific line."
-    }
-  ]
-}
-
-GUIDELINES:
-1. "lineNumber" must be the line number in the NEW file (the right side of the diff) where the issue is located.
-2. "file" must exactly match the file path in the diff header (e.g., "src/index.ts").
-3. Only add comments for specific issues (bugs, security, performance).
-4. If there are no issues, "comments" should be empty and "summary" should be "LGTM".
-5. Do not use emojis.
-`;
+        const systemPrompt = [
+            'You are an expert Senior Software Engineer performing a code review.',
+            'Your goal is to review the provided code DIFF based strictly on the provided INSTRUCTIONS.',
+            '',
+            'INSTRUCTIONS:',
+            instructions,
+            '',
+            'OUTPUT FORMAT:',
+            'You must respond with a valid JSON object in the following format:',
+            '{',
+            '  "summary": "A markdown summary of the review.",',
+            '  "comments": [',
+            exampleComment,
+            '  ]',
+            '}',
+            '',
+            'GUIDELINES:',
+            '1. "lineNumber" must be the line number in the NEW file (the right side of the diff) where the issue is located.',
+            '2. "file" must exactly match the file path in the diff header.',
+            '3. **CRITICAL:** For every issue identified, provide a CONCRETE CODE SUGGESTION (a fix) using a markdown code block inside the "comment" field. Do not just describe the error; show how to fix it.',
+            '4. Only add comments for specific issues (bugs, security, performance).',
+            '5. If there are no issues, "comments" should be empty and "summary" should be "LGTM".',
+            '6. Do not use emojis.'
+        ].join('\n');
 
         try {
             const response = await this.openai.chat.completions.create({
