@@ -17,7 +17,6 @@ jobs:
       - name: Run AI Review
         uses: ./ # Uses the action from the root of this repository
         with:
-          provider: 'gemini'
           gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           rules_file: '.review-rules.md'

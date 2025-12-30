@@ -32988,7 +32988,7 @@ GUIDELINES:
         try {
             const genModel = this.genAI.getGenerativeModel({ model: model });
             const prompt = `${systemPrompt}\n\nHere is the git diff of the changes:\n\n${diff}`;
-            const result = await genModel.generateContent(prompt);
+            const result = await this.generateWithRetry(genModel, prompt);
             const response = await result.response;
             const text = response.text();
             return {
@@ -32998,6 +32998,19 @@ GUIDELINES:
         catch (error) {
             core.error(`Gemini API Error: ${error}`);
             throw new Error('Failed to generate review from Gemini.');
+        }
+    }
+    async generateWithRetry(model, prompt, retries = 3, delay = 2000) {
+        try {
+            return await model.generateContent(prompt);
+        }
+        catch (error) {
+            if (retries > 0 && (error.message.includes('429') || error.message.includes('Quota exceeded'))) {
+                core.warning(`Rate limit hit. Retrying in ${delay / 1000} seconds... (${retries} attempts left)`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+                return this.generateWithRetry(model, prompt, retries - 1, delay * 2);
+            }
+            throw error;
         }
     }
 }
