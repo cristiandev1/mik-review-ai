@@ -3,17 +3,18 @@ import { AIProvider, ReviewParams, ReviewResult } from './provider.interface';
 import * as core from '@actions/core';
 import { DiffParser } from '../utils/diff.parser';
 
-export class OpenAIProvider implements AIProvider {
-    private openai: OpenAI;
+export class DeepSeekProvider implements AIProvider {
+    private client: OpenAI;
 
     constructor(apiKey: string) {
-        this.openai = new OpenAI({
+        this.client = new OpenAI({
             apiKey: apiKey,
+            baseURL: 'https://api.deepseek.com',
         });
     }
 
     async reviewCode(params: ReviewParams): Promise<ReviewResult> {
-        const { diff, instructions, model = 'gpt-4o-mini' } = params;
+        const { diff, instructions, model = 'deepseek-chat' } = params;
 
         // 1. Parse the diff into a numbered format to help the AI identify line numbers correctly.
         const parsedFiles = DiffParser.parse(diff);
@@ -54,7 +55,7 @@ export class OpenAIProvider implements AIProvider {
         ].join('\n');
 
         try {
-            const response = await this.openai.chat.completions.create({
+            const response = await this.client.chat.completions.create({
                 model: model,
                 messages: [
                     { role: 'system', content: systemPrompt },
@@ -69,7 +70,7 @@ export class OpenAIProvider implements AIProvider {
             try {
                 parsed = JSON.parse(content);
             } catch (e) {
-                core.warning('Failed to parse JSON response from OpenAI. Falling back to raw text.');
+                core.warning('Failed to parse JSON response from DeepSeek. Falling back to raw text.');
                 return { review: content };
             }
 
@@ -79,8 +80,8 @@ export class OpenAIProvider implements AIProvider {
             };
 
         } catch (error: any) {
-            core.error(`OpenAI API Error: ${error.message}`);
-            throw new Error('Failed to generate review from OpenAI.');
+            core.error(`DeepSeek API Error: ${error.message}`);
+            throw new Error('Failed to generate review from DeepSeek.');
         }
     }
 }

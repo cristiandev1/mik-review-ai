@@ -1,10 +1,10 @@
 import { AIProvider } from './provider.interface';
-import { OpenAIProvider } from './openai.provider';
+import { DeepSeekProvider } from './deepseek.provider';
 
 export enum AIProviderType {
-    OPENAI = 'openai',
+    DEEPSEEK = 'deepseek',
 }
 
-export function createAIProvider(apiKey: string, provider: AIProviderType = AIProviderType.OPENAI): AIProvider {
-    return new OpenAIProvider(apiKey);
+export function createAIProvider(apiKey: string, provider: AIProviderType = AIProviderType.DEEPSEEK): AIProvider {
+    return new DeepSeekProvider(apiKey);
 }

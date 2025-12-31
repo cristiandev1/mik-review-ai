@@ -32,7 +32,7 @@ Copy the appropriate workflow to your project at `.github/workflows/ai-review.ym
 - **`python-workflow.yml`** - For Python projects
 
 All workflows use the same structure. Just ensure you:
-1. Set the `OPENAI_API_KEY` secret in your repository
+1. Set the `DEEPSEEK_API_KEY` secret in your repository
 2. Have a `.review-rules.md` file in your project root
 
 ## Customization
@@ -54,6 +54,6 @@ Feel free to mix and match! You can:
    cp examples/nextjs-workflow.yml /path/to/your/project/.github/workflows/ai-review.yml
    ```
 
-3. Add `OPENAI_API_KEY` to your repository secrets
+3. Add `DEEPSEEK_API_KEY` to your repository secrets
 
 4. Open a PR and watch the AI review your code!

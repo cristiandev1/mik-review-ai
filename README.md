@@ -1,6 +1,6 @@
 # Mik Review AI
 
-An automated code review assistant powered by OpenAI, designed to run as a GitHub Action on pull requests.
+An automated code review assistant powered by DeepSeek-V3.2, designed to run as a GitHub Action on pull requests.
 
 ## Features
 
@@ -8,7 +8,7 @@ An automated code review assistant powered by OpenAI, designed to run as a GitHu
 - **Customizable Rules**: Define your own code style and review guidelines in a Markdown file
 - **Inline Comments**: Posts comments directly on specific lines of changed code
 - **Multi-Language Support**: Works with any programming language (customize rules for your stack)
-- **Model Agnostic**: Configurable OpenAI model (defaults to `gpt-4o`)
+- **Model Agnostic**: Configurable DeepSeek model (defaults to `deepseek-chat`)
 
 ## Quick Start
 
@@ -36,18 +36,18 @@ jobs:
       - name: Run AI Review
         uses: cristiancastro/mik-review-ai@main  # Or use your fork/username
         with:
-          openai_api_key: ${{ secrets.OPENAI_API_KEY }}
+          deepseek_api_key: ${{ secrets.DEEPSEEK_API_KEY }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           rules_file: '.review-rules.md'  # Optional: defaults to .review-rules.md
-          model_name: 'gpt-4o'  # Optional: defaults to gpt-4o
+          model_name: 'deepseek-chat'  # Optional: defaults to deepseek-chat
 ```
 
-### 2. Configure Your OpenAI API Key
+### 2. Configure Your DeepSeek API Key
 
 1. Go to your repository's **Settings** > **Secrets and variables** > **Actions**
 2. Click **New repository secret**
-3. Name: `OPENAI_API_KEY`
-4. Value: Your OpenAI API key (get it from [platform.openai.com](https://platform.openai.com/api-keys))
+3. Name: `DEEPSEEK_API_KEY`
+4. Value: Your DeepSeek API key (get it from [platform.deepseek.com](https://platform.deepseek.com))
 5. Click **Add secret**
 
 The `GITHUB_TOKEN` is automatically provided by GitHub Actions.
@@ -89,16 +89,16 @@ You can copy these directly to your project and customize as needed.
 
 | Input | Required | Default | Description |
 |-------|----------|---------|-------------|
-| `openai_api_key` | Yes | - | Your OpenAI API key (set as repository secret) |
+| `deepseek_api_key` | Yes | - | Your DeepSeek API key (set as repository secret) |
 | `github_token` | Yes | - | GitHub token (use `${{ secrets.GITHUB_TOKEN }}`) |
 | `rules_file` | No | `.review-rules.md` | Path to your review rules file |
-| `model_name` | No | `gpt-4o` | OpenAI model to use (e.g., `gpt-4o`, `gpt-4o-mini`) |
+| `model_name` | No | `deepseek-chat` | DeepSeek model to use (e.g., `deepseek-chat`, `deepseek-coder`) |
 
 ## How It Works
 
 1. When a PR is opened or updated, the action fetches the diff
 2. It reads your custom review rules from `.review-rules.md` in your project
-3. Sends the diff + rules to OpenAI for analysis
+3. Sends the diff + rules to DeepSeek for analysis
 4. Posts a summary comment on the PR
 5. Adds inline comments on specific lines where issues are found
 
@@ -108,7 +108,7 @@ You can copy these directly to your project and customize as needed.
 
 1. Copy `examples/nextjs-review-rules.md` to your Next.js project root as `.review-rules.md`
 2. Add the workflow file above to `.github/workflows/ai-review.yml`
-3. Add your `OPENAI_API_KEY` to repository secrets
+3. Add your `DEEPSEEK_API_KEY` to repository secrets
 4. Open a PR and watch the AI review your code
 
 ### Example 2: Python Project
@@ -141,7 +141,7 @@ Create your own `.review-rules.md` tailored to your team's standards:
 This action is designed to be **language-agnostic**. Each project that uses it should:
 
 1. Have its own `.review-rules.md` file (not shared between projects)
-2. Configure its own `OPENAI_API_KEY` in repository secrets
+2. Configure its own `DEEPSEEK_API_KEY` in repository secrets
 3. Customize the rules based on the project's language/framework
 
 **The action reads the review rules from the repository being reviewed, not from this action's repository.**
@@ -170,7 +170,7 @@ If you fork this action and want to use it:
 2. Install dependencies: `npm install`
 3. Create `.env` file:
    ```
-   OPENAI_API_KEY=your-key-here
+   DEEPSEEK_API_KEY=your-key-here
    GITHUB_TOKEN=your-github-token
    ```
 4. Make changes to `src/`
@@ -201,7 +201,7 @@ Pull requests are welcome! Please ensure you:
 ## Support
 
 If you encounter issues:
-1. Check that your `OPENAI_API_KEY` is set correctly in repository secrets
+1. Check that your `DEEPSEEK_API_KEY` is set correctly in repository secrets
 2. Verify the `.review-rules.md` file exists in your project root
 3. Check the action logs in the GitHub Actions tab
 

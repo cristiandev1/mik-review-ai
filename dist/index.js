@@ -31365,27 +31365,7 @@ function wrappy (fn, cb) {
 
 /***/ }),
 
-/***/ 8700:
-/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.AIProviderType = void 0;
-exports.createAIProvider = createAIProvider;
-const openai_provider_1 = __nccwpck_require__(6215);
-var AIProviderType;
-(function (AIProviderType) {
-    AIProviderType["OPENAI"] = "openai";
-})(AIProviderType || (exports.AIProviderType = AIProviderType = {}));
-function createAIProvider(apiKey, provider = AIProviderType.OPENAI) {
-    return new openai_provider_1.OpenAIProvider(apiKey);
-}
-
-
-/***/ }),
-
-/***/ 6215:
+/***/ 9007:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
@@ -31427,18 +31407,19 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.OpenAIProvider = void 0;
+exports.DeepSeekProvider = void 0;
 const openai_1 = __importDefault(__nccwpck_require__(2583));
 const core = __importStar(__nccwpck_require__(7484));
 const diff_parser_1 = __nccwpck_require__(1957);
-class OpenAIProvider {
+class DeepSeekProvider {
     constructor(apiKey) {
-        this.openai = new openai_1.default({
+        this.client = new openai_1.default({
             apiKey: apiKey,
+            baseURL: 'https://api.deepseek.com',
         });
     }
     async reviewCode(params) {
-        const { diff, instructions, model = 'gpt-4o' } = params;
+        const { diff, instructions, model = 'deepseek-chat' } = params;
         // 1. Parse the diff into a numbered format to help the AI identify line numbers correctly.
         const parsedFiles = diff_parser_1.DiffParser.parse(diff);
         const numberedDiff = diff_parser_1.DiffParser.formatForAI(parsedFiles);
@@ -31475,7 +31456,7 @@ class OpenAIProvider {
             '7. Do not use emojis.'
         ].join('\n');
         try {
-            const response = await this.openai.chat.completions.create({
+            const response = await this.client.chat.completions.create({
                 model: model,
                 messages: [
                     { role: 'system', content: systemPrompt },
@@ -31490,7 +31471,7 @@ class OpenAIProvider {
                 parsed = JSON.parse(content);
             }
             catch (e) {
-                core.warning('Failed to parse JSON response from OpenAI. Falling back to raw text.');
+                core.warning('Failed to parse JSON response from DeepSeek. Falling back to raw text.');
                 return { review: content };
             }
             return {
@@ -31499,12 +31480,32 @@ class OpenAIProvider {
             };
         }
         catch (error) {
-            core.error(`OpenAI API Error: ${error.message}`);
-            throw new Error('Failed to generate review from OpenAI.');
+            core.error(`DeepSeek API Error: ${error.message}`);
+            throw new Error('Failed to generate review from DeepSeek.');
         }
     }
 }
-exports.OpenAIProvider = OpenAIProvider;
+exports.DeepSeekProvider = DeepSeekProvider;
+
+
+/***/ }),
+
+/***/ 8700:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.AIProviderType = void 0;
+exports.createAIProvider = createAIProvider;
+const deepseek_provider_1 = __nccwpck_require__(9007);
+var AIProviderType;
+(function (AIProviderType) {
+    AIProviderType["DEEPSEEK"] = "deepseek";
+})(AIProviderType || (exports.AIProviderType = AIProviderType = {}));
+function createAIProvider(apiKey, provider = AIProviderType.DEEPSEEK) {
+    return new deepseek_provider_1.DeepSeekProvider(apiKey);
+}
 
 
 /***/ }),
@@ -31752,20 +31753,20 @@ dotenv.config();
 async function run() {
     try {
         // 1. Get Inputs
-        const openaiApiKey = core.getInput('openai_api_key') || process.env.OPENAI_API_KEY || '';
+        const deepseekApiKey = core.getInput('deepseek_api_key') || process.env.DEEPSEEK_API_KEY || '';
         const githubToken = core.getInput('github_token') || process.env.GITHUB_TOKEN || '';
         const rulesFilePath = core.getInput('rules_file') || '.review-rules.md';
-        let modelName = core.getInput('model_name') || 'gpt-4o';
-        core.info(`Provider: OpenAI`);
+        let modelName = core.getInput('model_name') || 'deepseek-chat';
+        core.info(`Provider: DeepSeek`);
         core.info(`Model: ${modelName}`);
         if (!githubToken) {
             throw new Error('GitHub Token is required (input: github_token or env: GITHUB_TOKEN)');
         }
-        if (!openaiApiKey) {
-            throw new Error('OpenAI API Key is required (input: openai_api_key or env: OPENAI_API_KEY)');
+        if (!deepseekApiKey) {
+            throw new Error('DeepSeek API Key is required (input: deepseek_api_key or env: DEEPSEEK_API_KEY)');
         }
         // 2. Initialize Services
-        const aiProvider = (0, factory_1.createAIProvider)(openaiApiKey, factory_1.AIProviderType.OPENAI);
+        const aiProvider = (0, factory_1.createAIProvider)(deepseekApiKey, factory_1.AIProviderType.DEEPSEEK);
         const githubService = new github_service_1.GitHubService(githubToken);
         // 3. Load Rules/Instructions
         let rulesContent = '';
@@ -31786,7 +31787,7 @@ async function run() {
             return;
         }
         // 5. Generate Review
-        core.info(`Generating review using OpenAI model: ${modelName}...`);
+        core.info(`Generating review using DeepSeek model: ${modelName}...`);
         const reviewResult = await aiProvider.reviewCode({
             diff,
             instructions: rulesContent,
@@ -31794,7 +31795,7 @@ async function run() {
         });
         // 6. Post Review (Inline Comments + Summary)
         core.info('Posting review to GitHub...');
-        const summary = `## 🤖 AI Code Review\n\n${reviewResult.review}\n\n---\n*Generated by mik-review-ai using OpenAI*`;
+        const summary = `## 🤖 AI Code Review\n\n${reviewResult.review}\n\n---\n*Generated by mik-review-ai using DeepSeek-V3.2*`;
         await githubService.postReview(summary, reviewResult.comments || []);
         core.info('Review completed successfully.');
     }
