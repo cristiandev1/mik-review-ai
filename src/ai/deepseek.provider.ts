@@ -24,7 +24,7 @@ export class DeepSeekProvider implements AIProvider {
             '{',
             '  "file": "path/to/file.ts",',
             '  "lineNumber": "10",',
-            '  "comment": "Explanation of the issue.\n\n```typescript\n// Suggested Fix\nconst safeValue = ...\n```"',
+            '  "comment": "Explanation of the issue.\n\n**Suggested Fix:**\n```typescript\n// Before (current code with context):\nfunction example() {\n  var problematicCode = value; // Line 10\n  return result;\n}\n\n// After (suggested fix):\nfunction example() {\n  const fixedCode = value; // Line 10 - Use const instead of var\n  return result;\n}\n```"',
             '}'
         ].join('\n');
 
@@ -48,10 +48,30 @@ export class DeepSeekProvider implements AIProvider {
             '1. **CRITICAL:** Use the line numbers provided in the "Numbered Diff" view. The number at the beginning of the line (e.g., "15 | + code") is the "lineNumber" you must use.',
             '2. "file" must exactly match the file path in the diff header.',
             '3. **CRITICAL:** Only add comments for lines that are marked with "+" (ADDED lines) or are part of the new code block. Do NOT comment on lines marked with "-".',
-            '4. **CRITICAL:** For every issue identified, provide a CONCRETE CODE SUGGESTION (a fix) using a markdown code block inside the "comment" field. Do not just describe the error; show how to fix it.',
-            '5. Only add comments for specific issues (bugs, security, performance).',
-            '6. If there are no issues, "comments" should be empty and "summary" should be "LGTM".',
-            '7. Do not use emojis.'
+            '4. **CRITICAL - CONTEXTUALIZED SUGGESTIONS:** For every issue identified, you MUST provide a CONCRETE CODE SUGGESTION showing:',
+            '   - A "Before" section with the current problematic code INCLUDING surrounding context (2-5 lines before/after)',
+            '   - An "After" section with the fixed code in the EXACT same context',
+            '   - Clear indication of EXACTLY where in the code structure to place the fix (inside which function, class, block, etc.)',
+            '   - Example format:',
+            '   ```language',
+            '   // Before (current code):',
+            '   function example() {',
+            '     const x = 1;',
+            '     var problematic = value; // <- Issue here at line X',
+            '     return x;',
+            '   }',
+            '   ',
+            '   // After (suggested fix):',
+            '   function example() {',
+            '     const x = 1;',
+            '     const fixed = value; // <- Fixed: use const instead of var',
+            '     return x;',
+            '   }',
+            '   ```',
+            '5. **DO NOT** provide isolated code snippets without context. Always show where the code belongs in the file structure.',
+            '6. Only add comments for specific issues (bugs, security, performance, best practices).',
+            '7. If there are no issues, "comments" should be empty and "summary" should be "LGTM".',
+            '8. Do not use emojis.'
         ].join('\n');
 
         try {
