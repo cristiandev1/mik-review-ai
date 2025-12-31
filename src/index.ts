@@ -2,6 +2,7 @@ import * as core from '@actions/core';
 import { createAIProvider, AIProviderType } from './ai/factory';
 import { GitHubService } from './github/github.service';
 import { ConfigLoader } from './config/config.loader';
+ import { DiffParser } from './utils/diff.parser';
 import * as dotenv from 'dotenv';
 
 // Load env vars for local development if needed
@@ -43,11 +44,31 @@ async function run() {
         // 4. Fetch PR Diff
         core.info('Fetching PR diff...');
         const diff = await githubService.getPRDiff();
-        
+
         // Basic check to avoid sending empty diffs
         if (!diff || diff.length === 0) {
             core.info('No changes detected in diff. Skipping review.');
             return;
+        }
+
+        // 4.1. Extract file paths from diff and fetch full file contents
+        core.info('Parsing diff to extract modified files...');
+        const parsedFiles = DiffParser.parse(diff);
+        const modifiedFilePaths = DiffParser.getModifiedFilePaths(parsedFiles);
+
+        core.info(`Found ${modifiedFilePaths.length} modified file(s). Fetching full content for better context...`);
+        const fileContents = new Map<string, string>();
+
+        for (const filePath of modifiedFilePaths) {
+            try {
+                const content = await githubService.getFileContent(filePath);
+                if (content) {
+                    fileContents.set(filePath, content);
+                    core.info(`✓ Fetched content for: ${filePath}`);
+                }
+            } catch (error) {
+                core.warning(`Failed to fetch content for ${filePath}: ${error}`);
+            }
         }
 
         // 5. Generate Review
@@ -55,7 +76,8 @@ async function run() {
         const reviewResult = await aiProvider.reviewCode({
             diff,
             instructions: rulesContent,
-            model: modelName
+            model: modelName,
+            fileContents
         });
 
         // 6. Post Review (Inline Comments + Summary)

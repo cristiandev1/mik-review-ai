@@ -31419,7 +31419,7 @@ class DeepSeekProvider {
         });
     }
     async reviewCode(params) {
-        const { diff, instructions, model = 'deepseek-chat' } = params;
+        const { diff, instructions, model = 'deepseek-chat', fileContents } = params;
         // 1. Parse the diff into a numbered format to help the AI identify line numbers correctly.
         const parsedFiles = diff_parser_1.DiffParser.parse(diff);
         const numberedDiff = diff_parser_1.DiffParser.formatForAI(parsedFiles);
@@ -31500,12 +31500,26 @@ class DeepSeekProvider {
             '10. If there are no issues, "comments" should be empty and "summary" should be "LGTM".',
             '11. Do not use emojis.'
         ].join('\n');
+        // Build the user message with full file contents if available
+        let userMessage = '';
+        if (fileContents && fileContents.size > 0) {
+            userMessage += '## Full File Contents\n\n';
+            userMessage += 'Here are the complete files that were modified for better context:\n\n';
+            fileContents.forEach((content, filePath) => {
+                userMessage += `### File: ${filePath}\n`;
+                userMessage += '```\n';
+                userMessage += content;
+                userMessage += '\n```\n\n';
+            });
+            userMessage += '---\n\n';
+        }
+        userMessage += `## Numbered Git Diff\n\nHere is the numbered git diff of the changes:\n\n${numberedDiff}`;
         try {
             const response = await this.client.chat.completions.create({
                 model: model,
                 messages: [
                     { role: 'system', content: systemPrompt },
-                    { role: 'user', content: `Here is the numbered git diff of the changes:\n\n${numberedDiff}` }
+                    { role: 'user', content: userMessage }
                 ],
                 temperature: 0.2,
                 response_format: { type: "json_object" }
@@ -31704,6 +31718,32 @@ class GitHubService {
             throw error;
         }
     }
+    async getFileContent(filePath, ref) {
+        const pull_request = this.context.payload.pull_request;
+        if (!pull_request) {
+            throw new Error('No pull request context found.');
+        }
+        const { owner, repo } = this.context.repo;
+        const fileRef = ref || pull_request.head.sha;
+        try {
+            const response = await this.octokit.rest.repos.getContent({
+                owner,
+                repo,
+                path: filePath,
+                ref: fileRef,
+            });
+            if (!('content' in response.data)) {
+                throw new Error(`Unable to get content for ${filePath}`);
+            }
+            // GitHub API returns content as base64 encoded string
+            const content = Buffer.from(response.data.content, 'base64').toString('utf-8');
+            return content;
+        }
+        catch (error) {
+            core.warning(`Failed to fetch content for ${filePath}: ${error}`);
+            return '';
+        }
+    }
     async postReview(summary, comments) {
         const pull_request = this.context.payload.pull_request;
         if (!pull_request) {
@@ -31792,6 +31832,7 @@ const core = __importStar(__nccwpck_require__(7484));
 const factory_1 = __nccwpck_require__(8700);
 const github_service_1 = __nccwpck_require__(3189);
 const config_loader_1 = __nccwpck_require__(3098);
+const diff_parser_1 = __nccwpck_require__(1957);
 const dotenv = __importStar(__nccwpck_require__(8889));
 // Load env vars for local development if needed
 dotenv.config();
@@ -31831,12 +31872,31 @@ async function run() {
             core.info('No changes detected in diff. Skipping review.');
             return;
         }
+        // 4.1. Extract file paths from diff and fetch full file contents
+        core.info('Parsing diff to extract modified files...');
+        const parsedFiles = diff_parser_1.DiffParser.parse(diff);
+        const modifiedFilePaths = diff_parser_1.DiffParser.getModifiedFilePaths(parsedFiles);
+        core.info(`Found ${modifiedFilePaths.length} modified file(s). Fetching full content for better context...`);
+        const fileContents = new Map();
+        for (const filePath of modifiedFilePaths) {
+            try {
+                const content = await githubService.getFileContent(filePath);
+                if (content) {
+                    fileContents.set(filePath, content);
+                    core.info(`✓ Fetched content for: ${filePath}`);
+                }
+            }
+            catch (error) {
+                core.warning(`Failed to fetch content for ${filePath}: ${error}`);
+            }
+        }
         // 5. Generate Review
         core.info(`Generating review using DeepSeek model: ${modelName}...`);
         const reviewResult = await aiProvider.reviewCode({
             diff,
             instructions: rulesContent,
-            model: modelName
+            model: modelName,
+            fileContents
         });
         // 6. Post Review (Inline Comments + Summary)
         core.info('Posting review to GitHub...');
@@ -31982,6 +32042,9 @@ class DiffParser {
             output += '\n';
         }
         return output;
+    }
+    static getModifiedFilePaths(files) {
+        return files.map(file => file.path);
     }
 }
 exports.DiffParser = DiffParser;
