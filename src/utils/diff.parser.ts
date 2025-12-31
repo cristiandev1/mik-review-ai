@@ -143,4 +143,8 @@ export class DiffParser {
 
         return output;
     }
+
+    static getModifiedFilePaths(files: DiffFile[]): string[] {
+        return files.map(file => file.path);
+    }
 }

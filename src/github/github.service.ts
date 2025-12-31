@@ -64,6 +64,37 @@ export class GitHubService {
         }
     }
 
+    async getFileContent(filePath: string, ref?: string): Promise<string> {
+        const pull_request = this.context.payload.pull_request;
+
+        if (!pull_request) {
+            throw new Error('No pull request context found.');
+        }
+
+        const { owner, repo } = this.context.repo;
+        const fileRef = ref || pull_request.head.sha;
+
+        try {
+            const response = await this.octokit.rest.repos.getContent({
+                owner,
+                repo,
+                path: filePath,
+                ref: fileRef,
+            });
+
+            if (!('content' in response.data)) {
+                throw new Error(`Unable to get content for ${filePath}`);
+            }
+
+            // GitHub API returns content as base64 encoded string
+            const content = Buffer.from(response.data.content, 'base64').toString('utf-8');
+            return content;
+        } catch (error) {
+            core.warning(`Failed to fetch content for ${filePath}: ${error}`);
+            return '';
+        }
+    }
+
     async postReview(summary: string, comments: Array<{ file: string; lineNumber: string; comment: string }>): Promise<void> {
         const pull_request = this.context.payload.pull_request;
 

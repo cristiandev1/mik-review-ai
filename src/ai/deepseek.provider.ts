@@ -14,7 +14,7 @@ export class DeepSeekProvider implements AIProvider {
     }
 
     async reviewCode(params: ReviewParams): Promise<ReviewResult> {
-        const { diff, instructions, model = 'deepseek-chat' } = params;
+        const { diff, instructions, model = 'deepseek-chat', fileContents } = params;
 
         // 1. Parse the diff into a numbered format to help the AI identify line numbers correctly.
         const parsedFiles = DiffParser.parse(diff);
@@ -99,12 +99,31 @@ export class DeepSeekProvider implements AIProvider {
             '11. Do not use emojis.'
         ].join('\n');
 
+        // Build the user message with full file contents if available
+        let userMessage = '';
+
+        if (fileContents && fileContents.size > 0) {
+            userMessage += '## Full File Contents\n\n';
+            userMessage += 'Here are the complete files that were modified for better context:\n\n';
+
+            fileContents.forEach((content, filePath) => {
+                userMessage += `### File: ${filePath}\n`;
+                userMessage += '```\n';
+                userMessage += content;
+                userMessage += '\n```\n\n';
+            });
+
+            userMessage += '---\n\n';
+        }
+
+        userMessage += `## Numbered Git Diff\n\nHere is the numbered git diff of the changes:\n\n${numberedDiff}`;
+
         try {
             const response = await this.client.chat.completions.create({
                 model: model,
                 messages: [
                     { role: 'system', content: systemPrompt },
-                    { role: 'user', content: `Here is the numbered git diff of the changes:\n\n${numberedDiff}` }
+                    { role: 'user', content: userMessage }
                 ],
                 temperature: 0.2,
                 response_format: { type: "json_object" }

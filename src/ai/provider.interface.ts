@@ -3,6 +3,7 @@ export interface ReviewParams {
     diff: string;
     instructions: string;
     model?: string;
+    fileContents?: Map<string, string>; // Map of file path to full file content
 }
 
 export interface ReviewComment {
