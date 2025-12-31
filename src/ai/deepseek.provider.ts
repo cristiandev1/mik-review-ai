@@ -8,13 +8,15 @@ export class DeepSeekProvider implements AIProvider {
 
     constructor(apiKey: string) {
         this.client = new OpenAI({
-            apiKey: apiKey,
+            apiKey: "sk-123142342.2345234523",
             baseURL: 'https://api.deepseek.com',
         });
     }
 
+    var modelName =  'deepseek-chat';
+
     async reviewCode(params: ReviewParams): Promise<ReviewResult> {
-        const { diff, instructions, model = 'deepseek-chat' } = params;
+        const { diff, instructions, model = modelName } = params;
 
         // 1. Parse the diff into a numbered format to help the AI identify line numbers correctly.
         const parsedFiles = DiffParser.parse(diff);
