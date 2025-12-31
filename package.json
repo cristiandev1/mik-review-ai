@@ -1,27 +1,30 @@
 {
-  "name": "mik-review-ai",
-  "version": "1.0.0",
-  "main": "index.js",
+  "name": "mik-review-ai-monorepo",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Mik Review AI - Code Review Platform powered by AI",
   "scripts": {
-    "build": "ncc build src/index.ts -o dist",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "pnpm --filter @mik-review-ai/api dev",
+    "build": "pnpm -r build",
+    "build:action": "pnpm --filter @mik-review-ai/action build",
+    "build:api": "pnpm --filter @mik-review-ai/api build",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint",
+    "clean": "rm -rf packages/*/dist packages/*/node_modules node_modules"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
-  "dependencies": {
-    "@actions/core": "^2.0.1",
-    "@actions/github": "^6.0.1",
-    "@octokit/rest": "^22.0.1",
-    "@types/node": "^25.0.3",
-    "dotenv": "^17.2.3",
-    "openai": "^6.15.0",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.9.3",
-    "zod": "^4.2.1"
-  },
+  "keywords": [
+    "code-review",
+    "ai",
+    "github-action",
+    "monorepo"
+  ],
+  "author": "Mik Review AI",
+  "license": "MIT",
   "devDependencies": {
-    "@vercel/ncc": "^0.38.4"
+    "pnpm": "^10.27.0"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=8.0.0"
   }
 }
