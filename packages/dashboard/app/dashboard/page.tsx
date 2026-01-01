@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Icons } from "@/components/icons"
 
 interface DashboardStats {
   totalReviews: number;
@@ -55,12 +57,16 @@ export default function DashboardPage() {
   };
 
   if (loading) {
-    return <div className="text-center py-12">Loading dashboard...</div>;
+    return (
+        <div className="flex h-[50vh] w-full items-center justify-center">
+            <Icons.spinner className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+    )
   }
 
   if (error) {
     return (
-      <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-md">
+      <div className="p-4 rounded-md bg-destructive/10 text-destructive border border-destructive/20">
         Error: {error}
       </div>
     );
@@ -71,149 +77,127 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="px-4 sm:px-0">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Dashboard</h1>
-
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="p-5">
-            <div className="flex items-center">
-              <div className="flex-1">
-                <dt className="text-sm font-medium text-gray-500 truncate">
-                  Total Reviews
-                </dt>
-                <dd className="mt-1 text-3xl font-semibold text-gray-900">
-                  {stats.totalReviews}
-                </dd>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="p-5">
-            <div className="flex items-center">
-              <div className="flex-1">
-                <dt className="text-sm font-medium text-gray-500 truncate">
-                  This Month
-                </dt>
-                <dd className="mt-1 text-3xl font-semibold text-gray-900">
-                  {stats.reviewsThisMonth}
-                </dd>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="p-5">
-            <div className="flex items-center">
-              <div className="flex-1">
-                <dt className="text-sm font-medium text-gray-500 truncate">
-                  Success Rate
-                </dt>
-                <dd className="mt-1 text-3xl font-semibold text-gray-900">
-                  {stats.successRate}%
-                </dd>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="p-5">
-            <div className="flex items-center">
-              <div className="flex-1">
-                <dt className="text-sm font-medium text-gray-500 truncate">
-                  Avg Time (ms)
-                </dt>
-                <dd className="mt-1 text-3xl font-semibold text-gray-900">
-                  {stats.avgProcessingTime}
-                </dd>
-              </div>
-            </div>
-          </div>
-        </div>
+    <div className="space-y-8">
+      <div>
+        <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
+        <p className="text-muted-foreground">
+          Overview of your code review activity and usage.
+        </p>
       </div>
 
-      {/* Rate Limit */}
-      <div className="bg-white shadow rounded-lg p-6 mb-8">
-        <h2 className="text-lg font-medium text-gray-900 mb-4">Monthly Usage</h2>
-        <div className="space-y-2">
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-600">Used</span>
-            <span className="font-medium">
-              {stats.rateLimit.used} / {stats.rateLimit.limit}
-            </span>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-2.5">
-            <div
-              className="bg-blue-600 h-2.5 rounded-full"
-              style={{ width: `${(stats.rateLimit.used / stats.rateLimit.limit) * 100}%` }}
-            ></div>
-          </div>
-          <div className="text-xs text-gray-500">
-            Resets on {new Date(stats.rateLimit.resetAt).toLocaleDateString()}
-          </div>
-        </div>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Total Reviews
+            </CardTitle>
+            <Icons.gitBranch className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.totalReviews}</div>
+            <p className="text-xs text-muted-foreground">
+              Lifetime reviews processed
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              This Month
+            </CardTitle>
+            <Icons.analytics className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.reviewsThisMonth}</div>
+            <p className="text-xs text-muted-foreground">
+              Reviews processed this month
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Success Rate</CardTitle>
+            <Icons.spinner className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.successRate}%</div>
+            <p className="text-xs text-muted-foreground">
+              Average successful reviews
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Avg Time
+            </CardTitle>
+            <Icons.settings className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.avgProcessingTime}ms</div>
+            <p className="text-xs text-muted-foreground">
+              Average processing time
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Recent Reviews */}
-      <div className="bg-white shadow rounded-lg p-6">
-        <h2 className="text-lg font-medium text-gray-900 mb-4">Recent Reviews</h2>
-        {stats.recentReviews.length === 0 ? (
-          <p className="text-gray-500 text-sm">No reviews yet</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead>
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Repository
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    PR
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Date
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {stats.recentReviews.map((review) => (
-                  <tr key={review.id}>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {review.repository}
-                    </td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                      #{review.pullRequest}
-                    </td>
-                    <td className="px-4 py-4 whitespace-nowrap">
-                      <span
-                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          review.status === 'completed'
-                            ? 'bg-green-100 text-green-800'
-                            : review.status === 'processing'
-                            ? 'bg-yellow-100 text-yellow-800'
-                            : 'bg-red-100 text-red-800'
-                        }`}
-                      >
-                        {review.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(review.createdAt).toLocaleDateString()}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+        <Card className="col-span-4">
+          <CardHeader>
+            <CardTitle>Recent Reviews</CardTitle>
+          </CardHeader>
+          <CardContent>
+             {stats.recentReviews.length === 0 ? (
+                <p className="text-muted-foreground text-sm">No reviews yet.</p>
+             ) : (
+                 <div className="space-y-4">
+                    {stats.recentReviews.map((review) => (
+                        <div key={review.id} className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0">
+                            <div className="space-y-1">
+                                <p className="text-sm font-medium leading-none">{review.repository}</p>
+                                <p className="text-sm text-muted-foreground">PR #{review.pullRequest}</p>
+                            </div>
+                            <div className="flex items-center gap-4">
+                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                    review.status === 'completed' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                                    review.status === 'processing' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                                    'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                                }`}>
+                                    {review.status}
+                                </span>
+                                <span className="text-sm text-muted-foreground">
+                                    {new Date(review.createdAt).toLocaleDateString()}
+                                </span>
+                            </div>
+                        </div>
+                    ))}
+                 </div>
+             )}
+          </CardContent>
+        </Card>
+        <Card className="col-span-3">
+          <CardHeader>
+            <CardTitle>Monthly Usage</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+             <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Plan Usage</span>
+                    <span className="font-medium">{stats.rateLimit.used} / {stats.rateLimit.limit}</span>
+                </div>
+                 <div className="h-2 w-full rounded-full bg-secondary">
+                    <div 
+                        className="h-full rounded-full bg-primary transition-all" 
+                        style={{ width: `${Math.min((stats.rateLimit.used / stats.rateLimit.limit) * 100, 100)}%` }} 
+                    />
+                 </div>
+                 <p className="text-xs text-muted-foreground">
+                    Resets on {new Date(stats.rateLimit.resetAt).toLocaleDateString()}
+                 </p>
+             </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

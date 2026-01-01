@@ -2,6 +2,10 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Icons } from "@/components/icons"
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -41,64 +45,91 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="bg-white p-8 rounded-lg shadow-lg">
-      <div className="mb-8 text-center">
-        <h1 className="text-3xl font-bold text-gray-900">Mik Review AI</h1>
-        <p className="text-gray-600 mt-2">Sign in to your account</p>
+    <>
+      <div className="flex flex-col space-y-2 text-center">
+        <h1 className="text-2xl font-semibold tracking-tight">
+          Login to your account
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          Enter your email below to login to your account
+        </p>
       </div>
-
-      {error && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-md text-sm">
-          {error}
+      
+      <div className="grid gap-6">
+        <form onSubmit={handleSubmit}>
+          <div className="grid gap-2">
+            <div className="grid gap-1">
+              <Label className="sr-only" htmlFor="email">
+                Email
+              </Label>
+              <Input
+                id="email"
+                placeholder="name@example.com"
+                type="email"
+                autoCapitalize="none"
+                autoComplete="email"
+                autoCorrect="off"
+                disabled={loading}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+              <Label className="sr-only" htmlFor="password">
+                Password
+              </Label>
+              <Input
+                id="password"
+                placeholder="Password"
+                type="password"
+                autoCapitalize="none"
+                autoComplete="current-password"
+                disabled={loading}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
+            {error && (
+              <div className="text-sm text-red-500">
+                {error}
+              </div>
+            )}
+            <Button disabled={loading}>
+              {loading && (
+                <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              Sign In with Email
+            </Button>
+          </div>
+        </form>
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-background px-2 text-muted-foreground">
+              Or continue with
+            </span>
+          </div>
         </div>
-      )}
-
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-            Email
-          </label>
-          <input
-            id="email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="you@example.com"
-          />
+        <div className="grid grid-cols-2 gap-6">
+          <Button variant="outline" disabled={loading}>
+            <Icons.github className="mr-2 h-4 w-4" />
+            Github
+          </Button>
+          <Button variant="outline" disabled={loading}>
+            <Icons.gitBranch className="mr-2 h-4 w-4" />
+            GitLab
+          </Button>
         </div>
-
-        <div>
-          <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-            Password
-          </label>
-          <input
-            id="password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="••••••••"
-          />
-        </div>
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {loading ? 'Signing in...' : 'Sign in'}
-        </button>
-      </form>
-
-      <p className="mt-6 text-center text-sm text-gray-600">
-        Don't have an account?{' '}
-        <Link href="/signup" className="text-blue-600 hover:text-blue-700 font-medium">
-          Sign up
-        </Link>
-      </p>
-    </div>
+        <p className="px-8 text-center text-sm text-muted-foreground">
+          Don&apos;t have an account?{" "}
+          <Link
+            href="/signup"
+            className="underline underline-offset-4 hover:text-primary"
+          >
+            Sign up
+          </Link>
+        </p>
+      </div>
+    </>
   );
 }

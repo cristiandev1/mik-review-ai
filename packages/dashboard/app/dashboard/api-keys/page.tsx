@@ -1,6 +1,19 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { Icons } from "@/components/icons"
+import { Label } from "@/components/ui/label"
 
 interface ApiKey {
   id: string;
@@ -17,6 +30,7 @@ export default function ApiKeysPage() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newKeyName, setNewKeyName] = useState('');
   const [createdKey, setCreatedKey] = useState('');
+  const [createLoading, setCreateLoading] = useState(false);
 
   useEffect(() => {
     fetchApiKeys();
@@ -46,6 +60,7 @@ export default function ApiKeysPage() {
   const handleCreateKey = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setCreateLoading(true);
 
     try {
       const token = localStorage.getItem('token');
@@ -66,9 +81,12 @@ export default function ApiKeysPage() {
 
       setCreatedKey(data.data.key);
       setNewKeyName('');
+      setShowCreateForm(false);
       fetchApiKeys();
     } catch (err: any) {
       setError(err.message);
+    } finally {
+      setCreateLoading(false);
     }
   };
 
@@ -97,157 +115,151 @@ export default function ApiKeysPage() {
   };
 
   if (loading) {
-    return <div className="text-center py-12">Loading API keys...</div>;
+    return (
+      <div className="flex h-[50vh] w-full items-center justify-center">
+        <Icons.spinner className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
   }
 
   return (
-    <div className="px-4 sm:px-0">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">API Keys</h1>
-        <button
-          onClick={() => setShowCreateForm(!showCreateForm)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
-        >
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+           <h2 className="text-3xl font-bold tracking-tight">API Keys</h2>
+           <p className="text-muted-foreground">Manage your API keys for accessing the platform.</p>
+        </div>
+        <Button onClick={() => setShowCreateForm(!showCreateForm)}>
+          <Icons.key className="mr-2 h-4 w-4" />
           Create New Key
-        </button>
+        </Button>
       </div>
 
       {error && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-md text-sm">
+        <div className="p-4 rounded-md bg-destructive/10 text-destructive border border-destructive/20">
           {error}
         </div>
       )}
 
       {createdKey && (
-        <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-md">
-          <h3 className="text-sm font-medium text-green-800 mb-2">
-            API Key Created Successfully!
-          </h3>
-          <p className="text-xs text-green-700 mb-2">
-            Make sure to copy your API key now. You won't be able to see it again!
-          </p>
-          <div className="flex items-center space-x-2">
-            <code className="flex-1 px-3 py-2 bg-white border border-green-300 rounded text-sm font-mono">
-              {createdKey}
-            </code>
-            <button
-              onClick={() => {
-                navigator.clipboard.writeText(createdKey);
-                alert('API key copied to clipboard!');
-              }}
-              className="px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
-            >
-              Copy
-            </button>
-          </div>
-          <button
-            onClick={() => setCreatedKey('')}
-            className="mt-3 text-sm text-green-700 hover:text-green-800"
-          >
-            Dismiss
-          </button>
-        </div>
+        <Card className="border-green-200 bg-green-50 dark:bg-green-900/10 dark:border-green-900">
+          <CardHeader>
+            <CardTitle className="text-green-800 dark:text-green-400 text-lg">API Key Created Successfully</CardTitle>
+            <CardDescription className="text-green-700 dark:text-green-500">
+              Make sure to copy your API key now. You won&apos;t be able to see it again!
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+             <div className="flex items-center space-x-2">
+                <code className="flex-1 px-3 py-2 bg-background border rounded text-sm font-mono break-all">
+                  {createdKey}
+                </code>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    navigator.clipboard.writeText(createdKey);
+                    alert('API key copied to clipboard!');
+                  }}
+                >
+                  Copy
+                </Button>
+             </div>
+             <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setCreatedKey('')}
+                className="text-green-700 hover:text-green-800 hover:bg-green-100 dark:text-green-400 dark:hover:bg-green-900/30"
+              >
+                Dismiss
+              </Button>
+          </CardContent>
+        </Card>
       )}
 
-      {showCreateForm && (
-        <div className="mb-6 p-4 bg-white border border-gray-200 rounded-md">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Create New API Key</h3>
-          <form onSubmit={handleCreateKey} className="space-y-4">
-            <div>
-              <label htmlFor="keyName" className="block text-sm font-medium text-gray-700 mb-1">
-                Key Name
-              </label>
-              <input
-                id="keyName"
-                type="text"
-                value={newKeyName}
-                onChange={(e) => setNewKeyName(e.target.value)}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Production API Key"
-              />
-            </div>
-            <div className="flex space-x-2">
-              <button
-                type="submit"
-                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
-              >
-                Create
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowCreateForm(false)}
-                className="bg-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-400"
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
-        </div>
+      {showCreateForm && !createdKey && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Create New API Key</CardTitle>
+            <CardDescription>Enter a name to identify this key.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleCreateKey} className="space-y-4">
+              <div className="grid gap-2">
+                <Label htmlFor="keyName">Key Name</Label>
+                <Input
+                  id="keyName"
+                  value={newKeyName}
+                  onChange={(e) => setNewKeyName(e.target.value)}
+                  placeholder="e.g. Production Server"
+                  required
+                />
+              </div>
+              <div className="flex space-x-2 justify-end">
+                <Button variant="ghost" onClick={() => setShowCreateForm(false)} type="button">Cancel</Button>
+                <Button type="submit" disabled={createLoading}>
+                   {createLoading && <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />}
+                   Create Key
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
       )}
 
-      <div className="bg-white shadow rounded-lg overflow-hidden">
-        {apiKeys.length === 0 ? (
-          <div className="p-6 text-center text-gray-500">
-            No API keys yet. Create one to get started!
-          </div>
-        ) : (
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Name
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Last Used
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Created
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {apiKeys.map((key) => (
-                <tr key={key.id}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {key.name}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span
-                      className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        key.isActive
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-red-100 text-red-800'
-                      }`}
-                    >
-                      {key.isActive ? 'Active' : 'Inactive'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {key.lastUsedAt ? new Date(key.lastUsedAt).toLocaleDateString() : 'Never'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {new Date(key.createdAt).toLocaleDateString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button
-                      onClick={() => handleDeleteKey(key.id)}
-                      className="text-red-600 hover:text-red-900"
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Name</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Last Used</TableHead>
+              <TableHead>Created</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {apiKeys.length === 0 ? (
+               <TableRow>
+                 <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                   No API keys found. Create one to get started.
+                 </TableCell>
+               </TableRow>
+            ) : (
+                apiKeys.map((key) => (
+                  <TableRow key={key.id}>
+                    <TableCell className="font-medium">{key.name}</TableCell>
+                    <TableCell>
+                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                        key.isActive 
+                          ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' 
+                          : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                      }`}>
+                        {key.isActive ? 'Active' : 'Inactive'}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      {key.lastUsedAt ? new Date(key.lastUsedAt).toLocaleDateString() : 'Never'}
+                    </TableCell>
+                    <TableCell>
+                      {new Date(key.createdAt).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => handleDeleteKey(key.id)}
+                      >
+                        <Icons.logout className="h-4 w-4 mr-1" />
+                        Revoke
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+            )}
+          </TableBody>
+        </Table>
       </div>
     </div>
   );
