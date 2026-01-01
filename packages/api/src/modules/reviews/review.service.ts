@@ -4,6 +4,9 @@ import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { reviewQueue, type ReviewJobData } from './review.queue.js';
 import type { CreateReviewInput } from './review.schemas.js';
+import { RateLimitService } from '../rate-limit/rate-limit.service.js';
+
+const rateLimitService = new RateLimitService();
 
 export class ReviewService {
   async createReview(userId: string, input: CreateReviewInput) {
@@ -27,9 +30,12 @@ export class ReviewService {
       githubToken: input.githubToken,
     };
 
-    const job = await reviewQueue.add('process-review', jobData, {
+    await reviewQueue.add('process-review', jobData, {
       jobId: reviewId, // Use reviewId as jobId for easy lookup
     });
+
+    // Increment usage counter for rate limiting
+    await rateLimitService.incrementUsage(userId);
 
     return {
       id: reviewId,

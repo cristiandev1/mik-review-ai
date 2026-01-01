@@ -6,6 +6,7 @@ import { env } from './config/env.js';
 import { authRoutes } from './modules/auth/auth.routes.js';
 import { apiKeyRoutes } from './modules/api-keys/api-key.routes.js';
 import { reviewRoutes } from './modules/reviews/review.routes.js';
+import { analyticsRoutes } from './modules/analytics/analytics.routes.js';
 
 export async function buildApp() {
   const app = Fastify({
@@ -71,6 +72,7 @@ export async function buildApp() {
   await app.register(authRoutes, { prefix: '/auth' });
   await app.register(apiKeyRoutes, { prefix: '/api-keys' });
   await app.register(reviewRoutes, { prefix: '/v1/reviews' });
+  await app.register(analyticsRoutes, { prefix: '/analytics' });
 
   return app;
 }

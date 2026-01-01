@@ -1,13 +1,14 @@
 import type { FastifyInstance } from 'fastify';
 import { ReviewController } from './review.controller.js';
 import { apiKeyMiddleware } from '../../middleware/api-key.middleware.js';
+import { rateLimitMiddleware } from '../../middleware/rate-limit.middleware.js';
 
 export async function reviewRoutes(app: FastifyInstance) {
   const controller = new ReviewController();
 
-  // All review routes require API key authentication
+  // POST route requires API key + rate limiting
   app.post('/', {
-    preHandler: [apiKeyMiddleware],
+    preHandler: [apiKeyMiddleware, rateLimitMiddleware],
   }, controller.create.bind(controller));
 
   app.get('/:id', {

@@ -21,8 +21,19 @@ export async function authMiddleware(
 
     const { userId } = authService.verifyToken(token);
 
-    // Attach userId to request
+    // Get user from database to have full info (plan, etc)
+    const user = await authService.getUserById(userId);
+
+    if (!user) {
+      return reply.code(401).send({
+        success: false,
+        error: 'User not found',
+      });
+    }
+
+    // Attach userId and user to request
     (request as any).userId = userId;
+    (request as any).user = user;
   } catch (error: any) {
     return reply.code(401).send({
       success: false,
