@@ -17,6 +17,8 @@ export interface ReviewJobResult {
     lineNumber: string;
     comment: string;
   }>;
+  tokensUsed?: number;
+  processingTime?: number;
 }
 
 // Create the review queue

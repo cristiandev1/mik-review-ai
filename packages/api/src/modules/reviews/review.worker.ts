@@ -4,13 +4,15 @@ import { reviews } from '../../database/schema.js';
 import { eq } from 'drizzle-orm';
 import { GitHubService } from '../github/github.service.js';
 import { AIService } from '../ai/ai.service.js';
+import { AnalyticsService } from '../analytics/analytics.service.js';
 import { logger } from '../../shared/utils/logger.js';
 import type { ReviewJobData, ReviewJobResult } from './review.queue.js';
 
 export async function processReviewJob(
   job: Job<ReviewJobData, ReviewJobResult>
 ): Promise<ReviewJobResult> {
-  const { reviewId, repository, pullRequest, githubToken } = job.data;
+  const startTime = Date.now();
+  const { reviewId, userId, repository, pullRequest, githubToken } = job.data;
 
   logger.info({ reviewId, repository, pullRequest }, 'Processing review job...');
 
@@ -24,6 +26,7 @@ export async function processReviewJob(
     // Initialize services
     const githubService = new GitHubService(githubToken);
     const aiService = new AIService('deepseek');
+    const analyticsService = new AnalyticsService();
 
     // Step 1: Fetch PR data from GitHub
     logger.info({ reviewId }, 'Fetching PR data from GitHub...');
@@ -67,6 +70,9 @@ Focus on code quality, performance, security, and maintainability.
       rules: defaultRules,
     });
 
+    const processingTime = Date.now() - startTime;
+    const tokensUsed = result.tokensUsed || 0;
+
     // Step 5: Save results to database
     logger.info({ reviewId }, 'Saving review results...');
     await job.updateProgress(90);
@@ -78,15 +84,29 @@ Focus on code quality, performance, security, and maintainability.
         summary: result.summary,
         comments: result.comments,
         aiModel: 'deepseek-chat',
+        tokensUsed,
+        processingTime,
         completedAt: new Date(),
       })
       .where(eq(reviews.id, reviewId));
+    
+    // Track analytics
+    await analyticsService.trackReview(
+      userId,
+      repository,
+      tokensUsed,
+      processingTime
+    );
 
     await job.updateProgress(100);
 
     logger.info({ reviewId }, 'Review job completed successfully');
 
-    return result;
+    return {
+      ...result,
+      processingTime,
+      tokensUsed
+    };
   } catch (error: any) {
     logger.error({ err: error, reviewId }, 'Review job failed');
 

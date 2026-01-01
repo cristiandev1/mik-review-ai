@@ -110,6 +110,7 @@ export class DeepSeekProvider implements AIProvider {
       });
 
       const content = response.choices[0]?.message?.content || '{}';
+      const tokensUsed = response.usage?.total_tokens || 0;
 
       let parsed;
       try {
@@ -118,13 +119,15 @@ export class DeepSeekProvider implements AIProvider {
         logger.warn('Failed to parse JSON response from DeepSeek');
         return {
           summary: content,
-          comments: []
+          comments: [],
+          tokensUsed
         };
       }
 
       return {
         summary: parsed.summary || 'No summary provided.',
-        comments: parsed.comments || []
+        comments: parsed.comments || [],
+        tokensUsed
       };
     } catch (error: any) {
       logger.error(error, 'DeepSeek API error');

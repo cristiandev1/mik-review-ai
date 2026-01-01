@@ -12,6 +12,7 @@ export interface AIReviewResult {
     lineNumber: string;
     comment: string;
   }>;
+  tokensUsed?: number;
 }
 
 export interface AIProvider {
