@@ -3,6 +3,9 @@ import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
 import { env } from './config/env.js';
+import { authRoutes } from './modules/auth/auth.routes.js';
+import { apiKeyRoutes } from './modules/api-keys/api-key.routes.js';
+import { reviewRoutes } from './modules/reviews/review.routes.js';
 
 export async function buildApp() {
   const app = Fastify({
@@ -64,10 +67,10 @@ export async function buildApp() {
     };
   });
 
-  // TODO: Register route modules here
-  // await app.register(authRoutes, { prefix: '/auth' });
-  // await app.register(reviewRoutes, { prefix: '/v1/reviews' });
-  // await app.register(apiKeyRoutes, { prefix: '/api-keys' });
+  // Register route modules
+  await app.register(authRoutes, { prefix: '/auth' });
+  await app.register(apiKeyRoutes, { prefix: '/api-keys' });
+  await app.register(reviewRoutes, { prefix: '/v1/reviews' });
 
   return app;
 }

@@ -1,6 +1,8 @@
 import { buildApp } from './app.js';
 import { env } from './config/env.js';
 import { logger } from './shared/utils/logger.js';
+// Import review worker to start processing jobs
+import './modules/reviews/review.queue.js';
 
 async function start() {
   try {
