@@ -18,15 +18,20 @@
 
 ## 🎯 Visão Geral do Projeto
 
-**Mik Review AI** é uma plataforma completa de code review automatizado utilizando IA (DeepSeek-V3.2), composta por:
+**Mik Review AI** é uma plataforma de code review automatizado que se integra ao seu fluxo de trabalho no GitHub. O objetivo é fornecer feedbacks inteligentes e contextuais sobre Pull Requests utilizando a IA DeepSeek-V3.2, mas gerenciado centralmente através do nosso dashboard.
 
-- **GitHub Action**: Workflow que roda em PRs para análise automática de código
-- **Backend API**: API REST em Fastify para gerenciar usuários, reviews, API keys e analytics
-- **Dashboard**: Interface web em Next.js para gerenciar reviews, visualizar analytics e configurações
-- **Processamento Assíncrono**: Sistema de filas com BullMQ para processar reviews em background
-
-### Público-Alvo
-Desenvolvedores e times que desejam automatizar code reviews usando IA em seus projetos GitHub.
+### Fluxo Principal do Usuário (Journey)
+1.  **Onboarding**: O usuário faz login no Dashboard e conecta sua conta do GitHub (OAuth/App).
+2.  **Permissões**: O usuário concede permissão para o Mik Review AI ler seus repositórios.
+3.  **Seleção de Repositórios**: No Dashboard, o usuário vê uma lista de seus repositórios e seleciona quais deseja ativar para code review.
+4.  **Integração**:
+    *   O usuário gera uma `MIK_REVIEW_API_KEY` no Dashboard.
+    *   No GitHub, adiciona essa chave como Secret (`MIK_REVIEW_API_KEY`) no repositório.
+    *   Adiciona um arquivo de workflow (`.github/workflows/mik-review.yml`) que utiliza nossa Action oficial.
+5.  **Review Automático**:
+    *   A cada novo Pull Request, a Action é disparada.
+    *   A Action envia os dados para a **API do Mik Review** usando a chave.
+    *   Nossa API busca as **Custom Rules** configuradas no Dashboard para aquele repositório (ou globais), processa o review e posta os comentários de volta no PR.
 
 ### Modelo de Negócio
 - **Free Plan**: 50 reviews/mês
@@ -46,52 +51,40 @@ Desenvolvedores e times que desejam automatizar code reviews usando IA em seus p
 │                    │                                         │
 │                    ▼                                         │
 │  ┌────────────────────────────────────────────────────┐    │
-│  │  GitHub Action (Mik Review AI)                      │    │
-│  │  - Fetch PR diff                                    │    │
-│  │  - Read .review-rules.md                           │    │
-│  │  - Call API POST /v1/reviews                       │    │
+│  │  GitHub Action (uses mik-review-action)             │    │
+│  │  - Env: MIK_REVIEW_API_KEY                         │    │
+│  │  - Step: Call Mik Review API (POST /v1/reviews)    │    │
 │  └─────────────────┬──────────────────────────────────┘    │
 └────────────────────┼─────────────────────────────────────────┘
-                     │
+                     │ Auth: Bearer <MIK_REVIEW_API_KEY>
                      ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                    Backend API (Fastify)                     │
 │  ┌────────────────────────────────────────────────────┐    │
-│  │  Middleware Layer                                   │    │
-│  │  - API Key Validation                              │    │
-│  │  - Rate Limiting (Redis)                           │    │
-│  │  - JWT Authentication                              │    │
+│  │  API Gateway & Security                             │    │
+│  │  - Validate API Key                                 │    │
+│  │  - Check Repository Authorization (is selected?)    │    │
+│  │  - Check Plan Limits / Balance                      │    │
 │  └─────────────────┬──────────────────────────────────┘    │
 │                    │                                         │
 │                    ▼                                         │
 │  ┌────────────────────────────────────────────────────┐    │
-│  │  Controllers & Services                            │    │
-│  │  - Auth (signup, login)                            │    │
-│  │  - API Keys (create, list, revoke)                │    │
-│  │  - Reviews (create, get, list)                    │    │
-│  │  - Analytics (dashboard, usage)                   │    │
-│  └─────────────────┬──────────────────────────────────┘    │
-│                    │                                         │
-│                    ▼                                         │
-│  ┌────────────────────────────────────────────────────┐    │
-│  │  BullMQ Queue (review-queue)                       │    │
-│  │  - Enqueue review job                              │    │
+│  │  Core Logic                                         │    │
+│  │  - Create Review Record (pending)                   │    │
+│  │  - Enqueue Job (BullMQ)                             │    │
 │  └─────────────────┬──────────────────────────────────┘    │
 └────────────────────┼─────────────────────────────────────────┘
-                     │
+                     │ Async Processing
                      ▼
 ┌─────────────────────────────────────────────────────────────┐
 │              Background Worker Process                       │
 │  ┌────────────────────────────────────────────────────┐    │
 │  │  Review Worker                                      │    │
-│  │  1. Fetch GitHub PR data via Octokit              │    │
-│  │  2. Get file contents & diff                      │    │
-│  │  3. Load review rules                             │    │
-│  │  4. Call AI Service (DeepSeek)                    │    │
-│  │  5. Parse AI response (summary + comments)        │    │
-│  │  6. Update review in database                     │    │
-│  │  7. Record usage analytics                        │    │
-│  │  8. [TODO] Post comments to GitHub PR             │    │
+│  │  1. Fetch Full PR Context (Diff, Files) via Octokit │    │
+│  │  2. Load Custom Rules from Dashboard                │    │
+│  │  3. AI Inference (DeepSeek Provider)                │    │
+│  │  4. Parse & Format Comments                         │    │
+│  │  5. Post Comments to GitHub PR                      │    │
 │  └────────────────────────────────────────────────────┘    │
 └─────────────────────────────────────────────────────────────┘
                      │
@@ -168,6 +161,48 @@ Desenvolvedores e times que desejam automatizar code reviews usando IA em seus p
 | Workspace | pnpm workspace | Monorepo structure |
 | CI/CD | GitHub Actions | Automation |
 | Bundler | @vercel/ncc | Action bundling |
+
+---
+
+## 🔌 Documentação de Integração (Workflow Recomendado)
+
+Para integrar o Mik Review AI em um repositório, o usuário deve seguir este processo padronizado:
+
+### 1. Configuração no Dashboard
+1.  Acesse o Dashboard e vá em **"Repositórios"**.
+2.  Clique em **"Adicionar Repositório"** e ative o repositório desejado.
+3.  Vá em **"Custom Rules"** e configure as regras de revisão (globais ou específicas para este repositório).
+4.  Vá em **"API Keys"**, gere uma nova chave e copie-a.
+
+### 2. Configuração no GitHub
+... (mesmo processo de secrets)
+
+### 3. Setup do Workflow
+Crie um arquivo `.github/workflows/code-review.yml` na raiz do projeto com o seguinte conteúdo:
+
+```yaml
+name: Mik Review AI
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      
+      - name: Run Mik Review AI
+        uses: mik-review/action@v1
+        with:
+          mik_api_key: ${{ secrets.MIK_REVIEW_API_KEY }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+```
 
 ---
 
@@ -279,7 +314,6 @@ Desenvolvedores e times que desejam automatizar code reviews usando IA em seus p
 - [x] **Workflow File**
   - Trigger em pull_request (opened, synchronize)
   - Fetch PR diff
-  - Leitura de .review-rules.md
   - POST para API /v1/reviews
   - Post de summary comment no PR
 
@@ -571,8 +605,8 @@ async function processReview(job: Job) {
   // 2. Get file contents
   const files = await githubService.fetchFiles(repo, prData.files, sha)
 
-  // 3. Load review rules
-  const rules = await loadReviewRules(repo) // .review-rules.md
+  // 3. Load review rules from DB (Global or Repository specific)
+  const rules = await customRulesService.getRulesForRepo(repo)
 
   // 4. Call AI service
   const aiResult = await aiService.generateReview(prData.diff, files, rules)
@@ -1097,7 +1131,6 @@ const queryClient = new QueryClient({
   - Endpoints: GET, POST, PUT, DELETE /custom-rules
   - Controller e service
   - Modificar worker para usar custom rules se existirem
-  - Fallback para .review-rules.md do repo
   - **Arquivos:** Novo módulo `modules/custom-rules/`
 
 - [x] **1.4 Error Handling** (Alta prioridade)
@@ -1148,7 +1181,14 @@ const queryClient = new QueryClient({
 **Objetivo:** Melhorar experiência do usuário e adicionar features esperadas
 
 #### Backend
-- [x] **2.1 GitHub OAuth** (Alta prioridade)
+- [ ] **2.1 Repository Management** (Alta Prioridade)
+  - ✅ GitHub App / OAuth Client configurado para ler repositórios
+  - Endpoint: `GET /github/repositories` (Listar repos do usuário via Octokit)
+  - Endpoint: `POST /repositories/sync` (Salvar repositório selecionado no DB)
+  - Tabela: `repositories` (id, userId, githubRepoId, name, enabled)
+  - **Arquivos:** `modules/repositories/`
+
+- [x] **2.2 GitHub OAuth** (Alta prioridade)
   - ✅ Criar GitHub App (Configuração externa necessária)
   - ✅ Callback endpoints: /auth/github/callback
   - ✅ Link existing users ou criar novos
@@ -1185,7 +1225,14 @@ const queryClient = new QueryClient({
   - **Arquivos:** `websocket/`, `review.worker.ts`
 
 #### Frontend
-- [x] **2.6 GitHub OAuth Flow** (Alta prioridade)
+- [ ] **2.6 Repository Selection UI** (Alta Prioridade)
+  - Página: `/dashboard/repositories`
+  - Lista de repositórios vindos do GitHub (com search/filter)
+  - Toggle switch para ativar/desativar repositório
+  - Feedback visual de "Syncing"
+  - **Arquivos:** `app/dashboard/repositories/page.tsx`
+
+- [x] **2.7 GitHub OAuth Flow** (Alta prioridade)
   - ✅ Integrar com backend endpoints
   - ✅ Callback page: /auth/callback
   - ✅ Handle success/error states
@@ -1805,7 +1852,7 @@ NEXT_PUBLIC_GA_ID=G-XXXXXXXXXX
 
 ```yaml
 # Em GitHub Secrets
-DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+MIK_REVIEW_API_KEY: ${{ secrets.MIK_REVIEW_API_KEY }}
 GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Auto-provido
 ```
 
