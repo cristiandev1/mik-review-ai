@@ -287,11 +287,12 @@ Desenvolvedores e times que desejam automatizar code reviews usando IA em seus p
 
 ### 🟡 Parcialmente Implementado
 
-- [ ] **Review Comments no GitHub**
+- [x] **Review Comments no GitHub** ✅ IMPLEMENTADO
   - ✅ Review armazenado no DB
   - ✅ AI gera comentários inline
-  - ❌ Worker não posta comentários no PR via GitHub API
-  - **Impacto**: Reviews não aparecem no GitHub, só no dashboard
+  - ✅ Worker posta comentários no PR via GitHub API
+  - ✅ Error handling robusto (não falha job se posting falhar)
+  - **Status**: Completamente funcional
 
 - [ ] **AI Providers**
   - ✅ Interface abstrata AIProvider
@@ -300,13 +301,15 @@ Desenvolvedores e times que desejam automatizar code reviews usando IA em seus p
   - ❌ Claude/Anthropic provider (stub only)
   - **Impacto**: Usuários não podem escolher provider
 
-- [ ] **Custom Rules**
+- [x] **Custom Rules** ✅ IMPLEMENTADO (Backend)
   - ✅ Tabela customRules no schema
   - ✅ Relação com users e teams
-  - ❌ Endpoints para CRUD de rules
-  - ❌ Integração no worker (usa .review-rules.md default)
-  - ❌ UI para editar rules
-  - **Impacto**: Usuários não podem customizar regras por projeto
+  - ✅ Endpoints CRUD completos (GET, POST, PUT, DELETE /custom-rules)
+  - ✅ Integração no worker (busca custom rules por repositório)
+  - ✅ Suporte a rules globais e por repositório
+  - ✅ Fallback para rules default se não houver custom
+  - ❌ UI para editar rules (frontend pendente)
+  - **Status**: Backend completo, falta frontend
 
 - [ ] **GitHub OAuth**
   - ✅ Botões na UI de login/signup
@@ -1473,15 +1476,21 @@ const queryClient = new QueryClient({
 | DELETE | `/teams/:id/members/:userId` | JWT | Remover membro |
 | PUT | `/teams/:id/members/:userId/role` | JWT | Atualizar role do membro |
 
-### Custom Rules [TODO]
+### Custom Rules ✅ IMPLEMENTADO
 
 | Método | Endpoint | Auth | Descrição |
 |--------|----------|------|-----------|
-| GET | `/custom-rules` | JWT | Listar rules do usuário/team |
-| POST | `/custom-rules` | JWT | Criar custom rule |
+| GET | `/custom-rules` | JWT | Listar rules do usuário/team (query: repository, isActive, limit, offset) |
+| POST | `/custom-rules` | JWT | Criar custom rule (body: name, content, repository?, teamId?) |
 | GET | `/custom-rules/:id` | JWT | Obter rule por ID |
-| PUT | `/custom-rules/:id` | JWT | Atualizar rule |
+| PUT | `/custom-rules/:id` | JWT | Atualizar rule (body: name?, content?, repository?, isActive?) |
 | DELETE | `/custom-rules/:id` | JWT | Deletar rule |
+
+**Funcionalidades:**
+- Rules podem ser globais (repository=null) ou específicas por repositório
+- Worker busca automaticamente a rule mais específica (repo > global > default)
+- Suporte a team rules (se teamId fornecido)
+- Validação com Zod schemas
 
 ### Billing [TODO]
 

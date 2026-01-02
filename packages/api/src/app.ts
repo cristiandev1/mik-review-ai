@@ -7,6 +7,7 @@ import { authRoutes } from './modules/auth/auth.routes.js';
 import { apiKeyRoutes } from './modules/api-keys/api-key.routes.js';
 import { reviewRoutes } from './modules/reviews/review.routes.js';
 import { analyticsRoutes } from './modules/analytics/analytics.routes.js';
+import { customRulesRoutes } from './modules/custom-rules/custom-rules.routes.js';
 
 export async function buildApp() {
   const app = Fastify({
@@ -73,6 +74,7 @@ export async function buildApp() {
   await app.register(apiKeyRoutes, { prefix: '/api-keys' });
   await app.register(reviewRoutes, { prefix: '/v1/reviews' });
   await app.register(analyticsRoutes, { prefix: '/analytics' });
+  await app.register(customRulesRoutes, { prefix: '/custom-rules' });
 
   return app;
 }

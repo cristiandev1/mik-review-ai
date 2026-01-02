@@ -5,6 +5,7 @@ import { eq } from 'drizzle-orm';
 import { GitHubService } from '../github/github.service.js';
 import { AIService } from '../ai/ai.service.js';
 import { AnalyticsService } from '../analytics/analytics.service.js';
+import { CustomRulesService } from '../custom-rules/custom-rules.service.js';
 import { logger } from '../../shared/utils/logger.js';
 import type { ReviewJobData, ReviewJobResult } from './review.queue.js';
 
@@ -27,6 +28,7 @@ export async function processReviewJob(
     const githubService = new GitHubService(githubToken);
     const aiService = new AIService('deepseek');
     const analyticsService = new AnalyticsService();
+    const customRulesService = new CustomRulesService();
 
     // Step 1: Fetch PR data from GitHub
     logger.info({ reviewId }, 'Fetching PR data from GitHub...');
@@ -46,8 +48,18 @@ export async function processReviewJob(
       prData.pr.head.sha
     );
 
-    // Step 3: Load review rules (default for now, can be customized per user later)
-    const defaultRules = `
+    // Step 3: Load review rules (try custom rules first, fallback to default)
+    logger.info({ reviewId, userId, repository }, 'Loading review rules...');
+
+    let reviewRules: string;
+    const customRule = await customRulesService.getRuleForRepository(userId, repository);
+
+    if (customRule) {
+      reviewRules = customRule;
+      logger.info({ reviewId, repository }, 'Using custom review rules');
+    } else {
+      // Fallback to default rules
+      reviewRules = `
 # Code Review Guidelines
 
 You are acting as a Senior Software Engineer. Review the code based on the following guidelines.
@@ -58,7 +70,9 @@ Focus on code quality, performance, security, and maintainability.
 - **Performance**: Efficient algorithms, no N+1 queries
 - **Code Quality**: DRY principle, SOLID principles, proper error handling
 - **Best Practices**: Follow language-specific conventions
-    `.trim();
+      `.trim();
+      logger.info({ reviewId, repository }, 'Using default review rules');
+    }
 
     // Step 4: Generate AI review
     logger.info({ reviewId }, 'Generating AI review...');
@@ -67,7 +81,7 @@ Focus on code quality, performance, security, and maintainability.
     const result = await aiService.generateReview({
       diff: prData.diff,
       fileContents,
-      rules: defaultRules,
+      rules: reviewRules,
     });
 
     const processingTime = Date.now() - startTime;
