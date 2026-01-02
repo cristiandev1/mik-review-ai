@@ -1,21 +1,18 @@
 name: 'Mik Review AI'
-description: 'Automated code review using DeepSeek-V3.2'
+description: 'Automated code review using Mik Review AI Platform'
 author: 'Cristian Castro'
 inputs:
-  deepseek_api_key:
-    description: 'DeepSeek API Key'
+  mik_api_key:
+    description: 'Your Mik Review AI API Key (get it at dashboard.mikreview.com)'
     required: true
   github_token:
-    description: 'GitHub Token to post comments'
+    description: 'GitHub Token'
     required: true
-  rules_file:
-    description: 'Path to the markdown file containing review rules'
+    default: ${{ github.token }}
+  api_url:
+    description: 'API URL (optional, for self-hosting or dev)'
     required: false
-    default: '.review-rules.md'
-  model_name:
-    description: 'The DeepSeek model to use (e.g., deepseek-chat, deepseek-coder)'
-    required: false
-    default: 'deepseek-chat'
+    default: 'https://api.mikreview.com'
 runs:
   using: 'node20'
   main: 'dist/index.js'

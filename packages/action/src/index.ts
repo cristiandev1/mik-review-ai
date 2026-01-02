@@ -1,93 +1,66 @@
 import * as core from '@actions/core';
-import { createAIProvider, AIProviderType } from './ai/factory';
-import { GitHubService } from './github/github.service';
-import { ConfigLoader } from './config/config.loader';
- import { DiffParser } from './utils/diff.parser';
-import * as dotenv from 'dotenv';
-
-// Load env vars for local development if needed
-dotenv.config();
+import * as github from '@actions/github';
 
 async function run() {
     try {
         // 1. Get Inputs
-        const deepseekApiKey = core.getInput('deepseek_api_key') || process.env.DEEPSEEK_API_KEY || '';
-        const githubToken = core.getInput('github_token') || process.env.GITHUB_TOKEN || '';
-        const rulesFilePath = core.getInput('rules_file') || '.review-rules.md';
-        let modelName = core.getInput('model_name') || 'deepseek-chat';
+        const mikApiKey = core.getInput('mik_api_key') || process.env.MIK_REVIEW_API_KEY;
+        const githubToken = core.getInput('github_token') || process.env.GITHUB_TOKEN;
+        const apiUrl = core.getInput('api_url') || 'https://api.mikreview.com';
 
-        core.info(`Provider: DeepSeek`);
-        core.info(`Model: ${modelName}`);
-
-        if (!githubToken) {
-            throw new Error('GitHub Token is required (input: github_token or env: GITHUB_TOKEN)');
+        if (!mikApiKey) {
+            throw new Error('MIK_REVIEW_API_KEY is required.');
         }
 
-        if (!deepseekApiKey) {
-            throw new Error('DeepSeek API Key is required (input: deepseek_api_key or env: DEEPSEEK_API_KEY)');
-        }
+        // 2. Get Context
+        const context = github.context;
+        const pr = context.payload.pull_request;
 
-        // 2. Initialize Services
-        const aiProvider = createAIProvider(deepseekApiKey, AIProviderType.DEEPSEEK);
-        const githubService = new GitHubService(githubToken);
-
-        // 3. Load Rules/Instructions
-        let rulesContent = '';
-        try {
-            rulesContent = ConfigLoader.loadRules(rulesFilePath);
-            core.info(`Loaded review rules from ${rulesFilePath}`);
-        } catch (error) {
-            core.warning(`Could not load rules file at ${rulesFilePath}. Using default generic instructions.`);
-            rulesContent = "Follow best practices for clean, efficient, and secure code.";
-        }
-
-        // 4. Fetch PR Diff
-        core.info('Fetching PR diff...');
-        const diff = await githubService.getPRDiff();
-
-        // Basic check to avoid sending empty diffs
-        if (!diff || diff.length === 0) {
-            core.info('No changes detected in diff. Skipping review.');
+        if (!pr) {
+            core.info('This action only runs on pull_request events. Skipping.');
             return;
         }
 
-        // 4.1. Extract file paths from diff and fetch full file contents
-        core.info('Parsing diff to extract modified files...');
-        const parsedFiles = DiffParser.parse(diff);
-        const modifiedFilePaths = DiffParser.getModifiedFilePaths(parsedFiles);
+        const { owner, repo } = context.repo;
+        const prNumber = pr.number;
+        const installationId = context.payload.installation?.id; // Needed if we use GitHub App in the future
 
-        core.info(`Found ${modifiedFilePaths.length} modified file(s). Fetching full content for better context...`);
-        const fileContents = new Map<string, string>();
+        core.info(`Triggering Mik Review AI for ${owner}/${repo} PR #${prNumber}`);
 
-        for (const filePath of modifiedFilePaths) {
-            try {
-                const content = await githubService.getFileContent(filePath);
-                if (content) {
-                    fileContents.set(filePath, content);
-                    core.info(`✓ Fetched content for: ${filePath}`);
-                }
-            } catch (error) {
-                core.warning(`Failed to fetch content for ${filePath}: ${error}`);
-            }
-        }
+        // 3. Construct Payload
+        const payload = {
+            repository: `${owner}/${repo}`,
+            prNumber: prNumber,
+            // If we are using a GitHub App installation, pass the ID.
+            // If we are using the Action's GITHUB_TOKEN, we might need to pass it
+            // depending on the API strategy. For now, let's pass installationId if available.
+            installationId: installationId ? Number(installationId) : undefined,
+            // We can also pass the commit SHA to be precise
+            commitSha: pr.head.sha
+        };
 
-        // 5. Generate Review
-        core.info(`Generating review using DeepSeek model: ${modelName}...`);
-        const reviewResult = await aiProvider.reviewCode({
-            diff,
-            instructions: rulesContent,
-            model: modelName,
-            fileContents
+        // 4. Call API
+        core.info(`Posting to ${apiUrl}/v1/reviews...`);
+        
+        const response = await fetch(`${apiUrl}/v1/reviews`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-API-Key': mikApiKey
+            },
+            body: JSON.stringify(payload)
         });
 
-        // 6. Post Review (Inline Comments + Summary)
-        core.info('Posting review to GitHub...');
-        const summary = `## 🤖 AI Code Review\n\n${reviewResult.review}\n\n---\n*Generated by mik-review-ai using DeepSeek-V3.2*`;
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`API Request Failed: ${response.status} ${response.statusText} - ${errorText}`);
+        }
+
+        const data = await response.json();
+        core.info('Review successfully triggered!');
+        core.info(`Review ID: ${data.reviewId}`);
+        core.info(`Status: ${data.status}`);
         
-        await githubService.postReview(summary, reviewResult.comments || []);
-
-        core.info('Review completed successfully.');
-
     } catch (error) {
         if (error instanceof Error) {
             core.setFailed(error.message);
