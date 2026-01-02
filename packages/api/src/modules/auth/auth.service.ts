@@ -5,6 +5,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { nanoid } from 'nanoid';
 import { env } from '../../config/env.js';
+import { VerificationService } from '../verification/verification.service.js';
 import type { SignupInput, LoginInput } from './auth.schemas.js';
 
 export class AuthService {
@@ -49,6 +50,15 @@ export class AuthService {
 
     // Generate JWT token
     const token = this.generateToken(user.id);
+
+    // Send verification email
+    const verificationService = new VerificationService();
+    try {
+      await verificationService.sendVerificationEmail(user.id);
+    } catch (error: any) {
+      // Log error but don't fail signup if email fails
+      console.error('Failed to send verification email:', error.message);
+    }
 
     return {
       user: {

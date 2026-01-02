@@ -105,6 +105,15 @@ export const subscriptions = pgTable('subscriptions', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+// Email Verification Tokens Table
+export const emailVerificationTokens = pgTable('email_verification_tokens', {
+  id: varchar('id', { length: 36 }).primaryKey(),
+  userId: varchar('user_id', { length: 36 }).references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  token: varchar('token', { length: 64 }).unique().notNull(),
+  expiresAt: timestamp('expires_at').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   apiKeys: many(apiKeys),
@@ -114,6 +123,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   teamMemberships: many(teamMembers),
   customRules: many(customRules),
   subscriptions: many(subscriptions),
+  verificationTokens: many(emailVerificationTokens),
 }));
 
 export const apiKeysRelations = relations(apiKeys, ({ one }) => ({

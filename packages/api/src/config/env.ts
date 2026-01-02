@@ -33,6 +33,14 @@ const envSchema = z.object({
   STRIPE_SECRET_KEY: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
 
+  // Email Configuration (Nodemailer)
+  EMAIL_HOST: z.string().default('smtp.resend.com'),
+  EMAIL_PORT: z.string().default('587'),
+  EMAIL_USER: z.string().default('resend'),
+  EMAIL_PASSWORD: z.string().optional(),
+  EMAIL_FROM: z.string().default('Mik Review AI <noreply@mikreview.ai>'),
+  FRONTEND_URL: z.string().url().default('http://localhost:3001'),
+
   // Other
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
 });
