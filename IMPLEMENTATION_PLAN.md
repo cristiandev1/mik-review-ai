@@ -1377,11 +1377,11 @@ const queryClient = new QueryClient({
   - CDN para assets estáticos
   - **Arquivos:** `shared/cache/`
 
-- [ ] **4.10 Rate Limiting Improvements** (Média prioridade)
-  - Rate limit por endpoint (não só reviews)
-  - IP-based rate limiting
-  - DDoS protection (Cloudflare)
-  - **Arquivos:** `middleware/rate-limit.middleware.ts`
+- [x] **Rate Limiting Improvements**
+  - ✅ Refinar lógica de rate limiting (Atomic consumption, User-aware)
+  - ✅ Configuração de Redis distribuído para rate limit global
+  - ✅ Endpoints para ver quota usage (GET /rate-limit/usage)
+  - ✅ Headers de rate limit detalhados (Limit, Remaining, Used, Plan, Reset)
 
 #### Security
 - [ ] **4.11 Security Audit** (Alta prioridade)

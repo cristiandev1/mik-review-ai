@@ -2,6 +2,7 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
+import { redis } from './config/redis.js';
 import { env } from './config/env.js';
 import { authRoutes } from './modules/auth/auth.routes.js';
 import { apiKeyRoutes } from './modules/api-keys/api-key.routes.js';
@@ -9,6 +10,7 @@ import { reviewRoutes } from './modules/reviews/review.routes.js';
 import { analyticsRoutes } from './modules/analytics/analytics.routes.js';
 import { customRulesRoutes } from './modules/custom-rules/custom-rules.routes.js';
 import { verificationRoutes } from './modules/verification/verification.routes.js';
+import { rateLimitRoutes } from './modules/rate-limit/rate-limit.routes.js';
 
 export async function buildApp() {
   const app = Fastify({
@@ -47,7 +49,20 @@ export async function buildApp() {
     timeWindow: '1 minute',
     cache: 10000,
     allowList: ['127.0.0.1'],
-    redis: undefined, // TODO: Configure Redis for distributed rate limiting
+    redis,
+    keyGenerator: (request) => {
+      // Use user ID if authenticated, otherwise fallback to IP
+      const user = (request as any).user;
+      return user ? `rl:user:${user.id}` : request.ip;
+    },
+    errorResponseBuilder: (request, context) => {
+      return {
+        success: false,
+        error: `Rate limit exceeded. Try again in ${context.after}.`,
+        code: 'TOO_MANY_REQUESTS',
+        expiresAt: new Date(Date.now() + context.ttl).toISOString(),
+      };
+    },
   });
 
   // Health check endpoint
@@ -77,6 +92,7 @@ export async function buildApp() {
   await app.register(reviewRoutes, { prefix: '/v1/reviews' });
   await app.register(analyticsRoutes, { prefix: '/analytics' });
   await app.register(customRulesRoutes, { prefix: '/custom-rules' });
+  await app.register(rateLimitRoutes, { prefix: '/rate-limit' });
 
   return app;
 }

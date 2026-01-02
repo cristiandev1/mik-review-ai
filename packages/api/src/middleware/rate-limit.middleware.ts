@@ -32,6 +32,7 @@ export async function rateLimitMiddleware(
     reply.header('X-RateLimit-Limit', result.limit.toString());
     reply.header('X-RateLimit-Remaining', result.remaining.toString());
     reply.header('X-RateLimit-Used', result.used.toString());
+    reply.header('X-RateLimit-Plan', result.planName || 'free');
 
     if (result.resetAt) {
       reply.header('X-RateLimit-Reset', result.resetAt.toISOString());
@@ -43,6 +44,7 @@ export async function rateLimitMiddleware(
         error: result.error?.message || 'Rate limit exceeded',
         code: result.error?.code || 'RATE_LIMIT_EXCEEDED',
         upgradeUrl: result.error?.upgradeUrl,
+        plan: result.planName,
         limit: result.limit,
         used: result.used,
         remaining: result.remaining,
