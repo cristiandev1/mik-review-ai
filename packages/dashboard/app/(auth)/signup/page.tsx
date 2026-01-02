@@ -52,6 +52,18 @@ export default function SignupPage() {
     }
   };
 
+  const handleGithubLogin = () => {
+    const clientId = process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID;
+    if (!clientId) {
+      setError('GitHub Client ID not configured');
+      return;
+    }
+    const redirectUri = `${window.location.origin}/auth/callback`;
+    const scope = 'user:email';
+    
+    window.location.href = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}`;
+  };
+
   return (
     <>
       <div className="flex flex-col space-y-2 text-center">
@@ -135,7 +147,7 @@ export default function SignupPage() {
             </span>
           </div>
         </div>
-        <Button variant="outline" disabled={loading}>
+        <Button variant="outline" disabled={loading} onClick={handleGithubLogin}>
           <Icons.github className="mr-2 h-4 w-4" />
           Github
         </Button>
