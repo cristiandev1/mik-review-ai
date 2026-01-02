@@ -1115,11 +1115,10 @@ const queryClient = new QueryClient({
   - **Arquivos:** Novo módulo `modules/email/`
 
 #### Frontend
-- [ ] **1.6 Review Detail Page** (Alta prioridade)
-  - Rota: /dashboard/reviews/:id
-  - Mostrar diff do PR
-  - Exibir comentários inline
-  - Link para PR no GitHub
+- [x] **1.6 Review Detail Page** (Alta prioridade)
+  - ✅ Rota: /dashboard/reviews/:id
+  - ✅ Mostrar resumo e comentários
+  - ✅ Integração com API via React Query
   - **Arquivos:** `app/dashboard/reviews/[id]/page.tsx`
 
 - [ ] **1.7 Error Handling UI** (Alta prioridade)
@@ -1167,10 +1166,10 @@ const queryClient = new QueryClient({
   - Shared API keys por team
   - **Arquivos:** Novo módulo `modules/teams/`
 
-- [ ] **2.3 Password Reset** (Média prioridade)
-  - POST /auth/forgot-password (enviar email)
-  - POST /auth/reset-password/:token
-  - Tokens com expiry (15min)
+- [x] **2.3 Password Reset** (Média prioridade)
+  - ✅ POST /auth/forgot-password (enviar email)
+  - ✅ POST /auth/reset-password/:token
+  - ✅ Tokens com expiry (15min)
   - **Arquivos:** `modules/auth/password-reset.ts`
 
 - [ ] **2.4 Notifications** (Baixa prioridade)
@@ -1186,11 +1185,11 @@ const queryClient = new QueryClient({
   - **Arquivos:** `websocket/`, `review.worker.ts`
 
 #### Frontend
-- [ ] **2.6 GitHub OAuth Flow** (Alta prioridade)
-  - Integrar com backend endpoints
-  - Callback page: /auth/callback
-  - Handle success/error states
-  - **Arquivos:** `app/(auth)/callback/page.tsx`
+- [x] **2.6 GitHub OAuth Flow** (Alta prioridade)
+  - ✅ Integrar com backend endpoints
+  - ✅ Callback page: /auth/callback
+  - ✅ Handle success/error states
+  - **Arquivos:** `app/auth/callback/page.tsx`
 
 - [ ] **2.7 Teams Management UI** (Média prioridade)
   - Páginas:
