@@ -75,7 +75,7 @@ Focus on code quality, performance, security, and maintainability.
 
     // Step 5: Save results to database
     logger.info({ reviewId }, 'Saving review results...');
-    await job.updateProgress(90);
+    await job.updateProgress(80);
 
     await db
       .update(reviews)
@@ -89,8 +89,38 @@ Focus on code quality, performance, security, and maintainability.
         completedAt: new Date(),
       })
       .where(eq(reviews.id, reviewId));
-    
-    // Track analytics
+
+    // Step 6: Post review comments to GitHub PR
+    logger.info({ reviewId }, 'Posting review comments to GitHub...');
+    await job.updateProgress(90);
+
+    try {
+      await githubService.postReviewComments(
+        owner,
+        repo,
+        pullRequest,
+        result.summary,
+        result.comments
+      );
+      logger.info({ reviewId }, 'Successfully posted review to GitHub PR');
+    } catch (error: any) {
+      // Log error but don't fail the entire job
+      // The review is already saved in our database
+      logger.error(
+        { err: error, reviewId },
+        'Failed to post review to GitHub, but review was saved successfully'
+      );
+
+      // Optionally, update the review to indicate posting failed
+      await db
+        .update(reviews)
+        .set({
+          error: `Review completed but failed to post to GitHub: ${error.message}`,
+        })
+        .where(eq(reviews.id, reviewId));
+    }
+
+    // Step 7: Track analytics
     await analyticsService.trackReview(
       userId,
       repository,

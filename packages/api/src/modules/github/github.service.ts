@@ -84,4 +84,66 @@ export class GitHubService {
 
     return contents;
   }
+
+  /**
+   * Post a review with comments to a GitHub Pull Request
+   */
+  async postReviewComments(
+    owner: string,
+    repo: string,
+    pullNumber: number,
+    summary: string,
+    comments: Array<{
+      file: string;
+      lineNumber: string;
+      comment: string;
+    }>
+  ): Promise<void> {
+    try {
+      // Convert lineNumber string to number
+      const reviewComments = comments
+        .map((c) => {
+          const line = parseInt(c.lineNumber, 10);
+          if (isNaN(line) || line <= 0) {
+            logger.warn({ file: c.file, lineNumber: c.lineNumber }, 'Invalid line number, skipping comment');
+            return null;
+          }
+          return {
+            path: c.file,
+            line: line,
+            side: 'RIGHT' as const, // Comment on the new version of the file
+            body: c.comment,
+          };
+        })
+        .filter((c): c is NonNullable<typeof c> => c !== null);
+
+      if (reviewComments.length === 0 && !summary) {
+        logger.info('No comments or summary to post, skipping review creation');
+        return;
+      }
+
+      // Create review with comments
+      await this.octokit.pulls.createReview({
+        owner,
+        repo,
+        pull_number: pullNumber,
+        body: summary || 'AI Code Review completed',
+        event: 'COMMENT', // COMMENT, APPROVE, or REQUEST_CHANGES
+        comments: reviewComments,
+      });
+
+      logger.info(
+        { owner, repo, pullNumber, commentsCount: reviewComments.length },
+        'Successfully posted review to GitHub PR'
+      );
+    } catch (error: any) {
+      logger.error(
+        { err: error, owner, repo, pullNumber },
+        'Failed to post review comments to GitHub'
+      );
+
+      // Re-throw with more context
+      throw new Error(`Failed to post GitHub review: ${error.message}`);
+    }
+  }
 }
