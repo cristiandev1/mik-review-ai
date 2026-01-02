@@ -9,6 +9,7 @@ export const users = pgTable('users', {
   name: varchar('name', { length: 255 }),
   plan: varchar('plan', { length: 50 }).default('free').notNull(), // free, pro, business
   githubId: varchar('github_id', { length: 100 }).unique(),
+  githubAccessToken: varchar('github_access_token', { length: 255 }),
   avatarUrl: varchar('avatar_url', { length: 500 }),
   emailVerified: boolean('email_verified').default(false).notNull(),
   stripeCustomerId: varchar('stripe_customer_id', { length: 100 }),

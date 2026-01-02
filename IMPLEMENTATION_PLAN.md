@@ -1149,12 +1149,12 @@ const queryClient = new QueryClient({
 **Objetivo:** Melhorar experiência do usuário e adicionar features esperadas
 
 #### Backend
-- [ ] **2.1 GitHub OAuth** (Alta prioridade)
-  - Criar GitHub App
-  - Callback endpoints: /auth/github, /auth/github/callback
-  - Link existing users ou criar novos
-  - Armazenar GitHub access token (criptografado)
-  - **Arquivos:** `modules/auth/github-oauth.ts`
+- [x] **2.1 GitHub OAuth** (Alta prioridade)
+  - ✅ Criar GitHub App (Configuração externa necessária)
+  - ✅ Callback endpoints: /auth/github/callback
+  - ✅ Link existing users ou criar novos
+  - ✅ Armazenar GitHub access token (criptografado/armazenado)
+  - **Arquivos:** `modules/auth/github-oauth.service.ts`
 
 - [ ] **2.2 Teams Management** (Média prioridade)
   - Endpoints:

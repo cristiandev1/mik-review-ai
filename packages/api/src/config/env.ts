@@ -28,6 +28,8 @@ const envSchema = z.object({
   // GitHub
   GITHUB_APP_ID: z.string().optional(),
   GITHUB_PRIVATE_KEY: z.string().optional(),
+  GITHUB_CLIENT_ID: z.string().optional(),
+  GITHUB_CLIENT_SECRET: z.string().optional(),
 
   // Stripe (para billing)
   STRIPE_SECRET_KEY: z.string().optional(),
