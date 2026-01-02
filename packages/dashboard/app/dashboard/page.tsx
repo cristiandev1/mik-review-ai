@@ -1,8 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Icons } from "@/components/icons"
+import { Button } from "@/components/ui/button"
 
 interface DashboardStats {
   totalReviews: number;
@@ -166,9 +168,9 @@ export default function DashboardPage() {
                                 }`}>
                                     {review.status}
                                 </span>
-                                <span className="text-sm text-muted-foreground">
-                                    {new Date(review.createdAt).toLocaleDateString()}
-                                </span>
+                                <Link href={`/dashboard/reviews/${review.id}`}>
+                                  <Button variant="ghost" size="sm">View Details</Button>
+                                </Link>
                             </div>
                         </div>
                     ))}

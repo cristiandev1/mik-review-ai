@@ -3,7 +3,7 @@
 import { useParams } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
-import { Card, CardContent, CardHeader } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import ReactMarkdown from 'react-markdown'
 import { Loader2, FileCode, GitPullRequest, Calendar, CheckCircle2, XCircle, Clock } from 'lucide-react'
 import { format } from 'date-fns'
