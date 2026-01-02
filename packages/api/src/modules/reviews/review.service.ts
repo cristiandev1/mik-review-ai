@@ -5,6 +5,7 @@ import { nanoid } from 'nanoid';
 import { reviewQueue, type ReviewJobData } from './review.queue.js';
 import type { CreateReviewInput } from './review.schemas.js';
 import { RateLimitService } from '../rate-limit/rate-limit.service.js';
+import { NotFoundError, ForbiddenError } from '../../shared/errors/app-error.js';
 
 const rateLimitService = new RateLimitService();
 
@@ -52,12 +53,12 @@ export class ReviewService {
       .limit(1);
 
     if (!review) {
-      throw new Error('Review not found');
+      throw new NotFoundError('Review not found');
     }
 
     // Security: check if review belongs to user
     if (review.userId !== userId) {
-      throw new Error('Unauthorized to access this review');
+      throw new ForbiddenError('Unauthorized to access this review');
     }
 
     // Get job from queue for progress

@@ -11,6 +11,7 @@ import { analyticsRoutes } from './modules/analytics/analytics.routes.js';
 import { customRulesRoutes } from './modules/custom-rules/custom-rules.routes.js';
 import { verificationRoutes } from './modules/verification/verification.routes.js';
 import { rateLimitRoutes } from './modules/rate-limit/rate-limit.routes.js';
+import { globalErrorHandler } from './shared/errors/error-handler.js';
 
 export async function buildApp() {
   const app = Fastify({
@@ -93,6 +94,9 @@ export async function buildApp() {
   await app.register(analyticsRoutes, { prefix: '/analytics' });
   await app.register(customRulesRoutes, { prefix: '/custom-rules' });
   await app.register(rateLimitRoutes, { prefix: '/rate-limit' });
+
+  // Global Error Handler
+  app.setErrorHandler(globalErrorHandler);
 
   return app;
 }

@@ -7,6 +7,8 @@ import { nanoid } from 'nanoid';
 import { env } from '../../config/env.js';
 import { VerificationService } from '../verification/verification.service.js';
 import type { SignupInput, LoginInput } from './auth.schemas.js';
+import { AppError, ConflictError, UnauthorizedError, NotFoundError } from '../../shared/errors/app-error.js';
+import { logger } from '../../shared/utils/logger.js';
 
 export class AuthService {
   async signup(input: SignupInput) {
@@ -18,7 +20,7 @@ export class AuthService {
       .limit(1);
 
     if (existingUser.length > 0) {
-      throw new Error('User with this email already exists');
+      throw new ConflictError('User with this email already exists');
     }
 
     // Hash password
@@ -57,7 +59,7 @@ export class AuthService {
       await verificationService.sendVerificationEmail(user.id);
     } catch (error: any) {
       // Log error but don't fail signup if email fails
-      console.error('Failed to send verification email:', error.message);
+      logger.error({ err: error }, 'Failed to send verification email');
     }
 
     return {
@@ -82,13 +84,13 @@ export class AuthService {
       .limit(1);
 
     if (!user) {
-      throw new Error('Invalid email or password');
+      throw new UnauthorizedError('Invalid email or password');
     }
 
     // Verify password
     const isValidPassword = await bcrypt.compare(input.password, user.passwordHash || '');
     if (!isValidPassword) {
-      throw new Error('Invalid email or password');
+      throw new UnauthorizedError('Invalid email or password');
     }
 
     // Generate JWT token
@@ -121,7 +123,7 @@ export class AuthService {
       .limit(1);
 
     if (!user) {
-      throw new Error('User not found');
+      throw new NotFoundError('User not found');
     }
 
     return user;
@@ -132,7 +134,7 @@ export class AuthService {
       const decoded = jwt.verify(token, env.JWT_SECRET) as { userId: string };
       return decoded;
     } catch (error) {
-      throw new Error('Invalid or expired token');
+      throw new UnauthorizedError('Invalid or expired token');
     }
   }
 

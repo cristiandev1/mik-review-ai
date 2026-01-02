@@ -1,5 +1,6 @@
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import { AuthService } from '../modules/auth/auth.service.js';
+import { UnauthorizedError } from '../shared/errors/app-error.js';
 
 const authService = new AuthService();
 
@@ -11,10 +12,7 @@ export async function authMiddleware(
     const authHeader = request.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return reply.code(401).send({
-        success: false,
-        error: 'Missing or invalid authorization header',
-      });
+      throw new UnauthorizedError('Missing or invalid authorization header');
     }
 
     const token = authHeader.substring(7); // Remove 'Bearer '
@@ -25,19 +23,16 @@ export async function authMiddleware(
     const user = await authService.getUserById(userId);
 
     if (!user) {
-      return reply.code(401).send({
-        success: false,
-        error: 'User not found',
-      });
+      throw new UnauthorizedError('User not found');
     }
 
     // Attach userId and user to request
     (request as any).userId = userId;
     (request as any).user = user;
   } catch (error: any) {
-    return reply.code(401).send({
-      success: false,
-      error: 'Invalid or expired token',
-    });
+    if (error instanceof UnauthorizedError) {
+      throw error;
+    }
+    throw new UnauthorizedError('Invalid or expired token');
   }
 }

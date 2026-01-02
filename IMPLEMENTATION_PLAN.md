@@ -1100,11 +1100,11 @@ const queryClient = new QueryClient({
   - Fallback para .review-rules.md do repo
   - **Arquivos:** Novo módulo `modules/custom-rules/`
 
-- [ ] **1.4 Error Handling** (Alta prioridade)
-  - Centralizar error handling (Fastify error handler)
-  - Padronizar responses de erro
-  - Logging de erros (Pino)
-  - Retry logic para falhas temporárias (GitHub API)
+- [x] **1.4 Error Handling** (Alta prioridade)
+  - ✅ Centralizar error handling (Fastify error handler)
+  - ✅ Padronizar responses de erro (AppError)
+  - ✅ Logging de erros (Pino + Global Handler)
+  - ❌ Retry logic para falhas temporárias (GitHub API) (Parcialmente via Redis/BullMQ)
   - **Arquivos:** `shared/errors/`, middleware
 
 - [ ] **1.5 Email Verification** (Média prioridade)

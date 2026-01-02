@@ -8,103 +8,62 @@ const passwordResetService = new PasswordResetService();
 
 export class AuthController {
   async signup(request: FastifyRequest, reply: FastifyReply) {
-    try {
-      const input = signupSchema.parse(request.body);
-      const result = await authService.signup(input);
+    const input = signupSchema.parse(request.body);
+    const result = await authService.signup(input);
 
-      return reply.code(201).send({
-        success: true,
-        data: result,
-        message: 'User created successfully',
-      });
-    } catch (error: any) {
-      request.log.error(error);
-      return reply.code(400).send({
-        success: false,
-        error: error.message || 'Signup failed',
-      });
-    }
+    return reply.code(201).send({
+      success: true,
+      data: result,
+      message: 'User created successfully',
+    });
   }
 
   async login(request: FastifyRequest, reply: FastifyReply) {
-    try {
-      const input = loginSchema.parse(request.body);
-      const result = await authService.login(input);
+    const input = loginSchema.parse(request.body);
+    const result = await authService.login(input);
 
-      return reply.code(200).send({
-        success: true,
-        data: result,
-      });
-    } catch (error: any) {
-      request.log.error(error);
-      return reply.code(401).send({
-        success: false,
-        error: error.message || 'Login failed',
-      });
-    }
+    return reply.code(200).send({
+      success: true,
+      data: result,
+    });
   }
 
   async forgotPassword(request: FastifyRequest, reply: FastifyReply) {
-    try {
-      const input = forgotPasswordSchema.parse(request.body);
-      await passwordResetService.requestPasswordReset(input.email);
+    const input = forgotPasswordSchema.parse(request.body);
+    await passwordResetService.requestPasswordReset(input.email);
 
-      return reply.code(200).send({
-        success: true,
-        message: 'If the email exists, a password reset link has been sent.',
-      });
-    } catch (error: any) {
-      request.log.error(error);
-      return reply.code(400).send({
-        success: false,
-        error: error.message || 'Failed to process request',
-      });
-    }
+    return reply.code(200).send({
+      success: true,
+      message: 'If the email exists, a password reset link has been sent.',
+    });
   }
 
   async resetPassword(request: FastifyRequest, reply: FastifyReply) {
-    try {
-      const input = resetPasswordSchema.parse(request.body);
-      const result = await passwordResetService.resetPassword(input.token, input.password);
+    const input = resetPasswordSchema.parse(request.body);
+    const result = await passwordResetService.resetPassword(input.token, input.password);
 
-      if (!result.success) {
-        return reply.code(400).send(result);
-      }
-
-      return reply.code(200).send(result);
-    } catch (error: any) {
-      request.log.error(error);
-      return reply.code(400).send({
-        success: false,
-        error: error.message || 'Failed to reset password',
-      });
+    if (!result.success) {
+      return reply.code(400).send(result);
     }
+
+    return reply.code(200).send(result);
   }
 
   async me(request: FastifyRequest, reply: FastifyReply) {
-    try {
-      // User is attached by auth middleware
-      const userId = (request as any).userId;
+    // User is attached by auth middleware
+    const userId = (request as any).userId;
 
-      if (!userId) {
-        return reply.code(401).send({
-          success: false,
-          error: 'Unauthorized',
-        });
-      }
-
-      const user = await authService.getUserById(userId);
-
-      return reply.code(200).send({
-        success: true,
-        data: user,
-      });
-    } catch (error: any) {
-      request.log.error(error);
-      return reply.code(500).send({
-        success: false,
-        error: error.message || 'Failed to get user',
-      });
+    if (!userId) {
+      // This should ideally be handled by middleware, but extra check is fine
+      throw new Error('Unauthorized'); 
+      // Or UnauthorizedError if we want to be strict, but middleware should catch it
     }
+
+    const user = await authService.getUserById(userId);
+
+    return reply.code(200).send({
+      success: true,
+      data: user,
+    });
   }
 }
