@@ -297,9 +297,7 @@ Desenvolvedores e times que desejam automatizar code reviews usando IA em seus p
 - [ ] **AI Providers**
   - ✅ Interface abstrata AIProvider
   - ✅ DeepSeek provider completo
-  - ❌ OpenAI provider (stub only)
-  - ❌ Claude/Anthropic provider (stub only)
-  - **Impacto**: Usuários não podem escolher provider
+  - **Impacto**: Usuários utilizam o DeepSeek como provider padrão.
 
 - [x] **Custom Rules** ✅ IMPLEMENTADO (Backend)
   - ✅ Tabela customRules no schema
@@ -1841,12 +1839,7 @@ GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Auto-provido
 
 ### Prioridade Alta (Semana 3-4)
 
-5. **OpenAI Provider**
-   - Implementar provider alternativo
-   - Comparar qualidade
-   - **Impacto:** Opções para usuários
-
-6. **GitHub OAuth**
+5. **GitHub OAuth**
    - Backend + Frontend
    - Simplificar signup
    - **Impacto:** Melhor UX de onboarding
@@ -1901,7 +1894,7 @@ GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Auto-provido
 - **JWT sem refresh token**: Simplicidade vs segurança (adicionar refresh em Fase 2)
 - **localStorage auth**: Client-side vs server-side (migrar para NextAuth em Fase 2)
 - **Redis rate limiting**: Performance vs distribuição (OK para MVP)
-- **DeepSeek only**: Custo baixo vs qualidade (adicionar OpenAI em Fase 1)
+- **DeepSeek only**: Foco em custo-benefício e performance (MVP)
 
 ### Riscos e Mitigações
 
