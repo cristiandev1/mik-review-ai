@@ -15,6 +15,13 @@
       "when": 1767314843598,
       "tag": "0001_lying_wendell_rand",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1767316722316,
+      "tag": "0002_freezing_titanium_man",
+      "breakpoints": true
     }
   ]
 }

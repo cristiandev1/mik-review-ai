@@ -338,11 +338,13 @@ Desenvolvedores e times que desejam automatizar code reviews usando IA em seus p
 ### 🔴 Não Implementado
 
 #### Backend
-- [ ] **Email System**
-  - Email verification após signup
-  - Password reset flow
-  - Email templates
-  - SMTP/SendGrid integration
+- [x] **Email System**
+  - ✅ Email verification após signup
+  - ✅ Endpoint: POST /auth/verify-email
+  - ✅ Endpoint: POST /auth/resend-verification
+  - ✅ Password reset flow (POST /auth/forgot-password, /auth/reset-password)
+  - ✅ Email templates (HTML/CSS styled)
+  - ✅ SMTP/SendGrid/Resend integration
 
 - [ ] **Notification System**
   - Notificações in-app

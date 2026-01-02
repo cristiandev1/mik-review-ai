@@ -1,8 +1,10 @@
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import { AuthService } from './auth.service.js';
-import { signupSchema, loginSchema } from './auth.schemas.js';
+import { PasswordResetService } from './password-reset.service.js';
+import { signupSchema, loginSchema, forgotPasswordSchema, resetPasswordSchema } from './auth.schemas.js';
 
 const authService = new AuthService();
+const passwordResetService = new PasswordResetService();
 
 export class AuthController {
   async signup(request: FastifyRequest, reply: FastifyReply) {
@@ -38,6 +40,43 @@ export class AuthController {
       return reply.code(401).send({
         success: false,
         error: error.message || 'Login failed',
+      });
+    }
+  }
+
+  async forgotPassword(request: FastifyRequest, reply: FastifyReply) {
+    try {
+      const input = forgotPasswordSchema.parse(request.body);
+      await passwordResetService.requestPasswordReset(input.email);
+
+      return reply.code(200).send({
+        success: true,
+        message: 'If the email exists, a password reset link has been sent.',
+      });
+    } catch (error: any) {
+      request.log.error(error);
+      return reply.code(400).send({
+        success: false,
+        error: error.message || 'Failed to process request',
+      });
+    }
+  }
+
+  async resetPassword(request: FastifyRequest, reply: FastifyReply) {
+    try {
+      const input = resetPasswordSchema.parse(request.body);
+      const result = await passwordResetService.resetPassword(input.token, input.password);
+
+      if (!result.success) {
+        return reply.code(400).send(result);
+      }
+
+      return reply.code(200).send(result);
+    } catch (error: any) {
+      request.log.error(error);
+      return reply.code(400).send({
+        success: false,
+        error: error.message || 'Failed to reset password',
       });
     }
   }

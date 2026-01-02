@@ -8,6 +8,8 @@ export async function authRoutes(app: FastifyInstance) {
   // Public routes
   app.post('/signup', controller.signup.bind(controller));
   app.post('/login', controller.login.bind(controller));
+  app.post('/forgot-password', controller.forgotPassword.bind(controller));
+  app.post('/reset-password', controller.resetPassword.bind(controller));
 
   // Protected routes
   app.get('/me', {
