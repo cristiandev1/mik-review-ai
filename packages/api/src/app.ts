@@ -12,6 +12,7 @@ import { customRulesRoutes } from './modules/custom-rules/custom-rules.routes.js
 import { verificationRoutes } from './modules/verification/verification.routes.js';
 import { rateLimitRoutes } from './modules/rate-limit/rate-limit.routes.js';
 import { repositoryRoutes } from './modules/repositories/repository.routes.js';
+import { teamRoutes } from './modules/teams/team.routes.js';
 import { globalErrorHandler } from './shared/errors/error-handler.js';
 
 export async function buildApp() {
@@ -95,6 +96,7 @@ export async function buildApp() {
   await app.register(analyticsRoutes, { prefix: '/analytics' });
   await app.register(customRulesRoutes, { prefix: '/custom-rules' });
   await app.register(rateLimitRoutes, { prefix: '/rate-limit' });
+  await app.register(teamRoutes, { prefix: '/teams' });
   await app.register(repositoryRoutes);
 
   // Global Error Handler

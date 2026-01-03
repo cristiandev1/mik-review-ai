@@ -1205,7 +1205,7 @@ const queryClient = new QueryClient({
   - ✅ Armazenar GitHub access token (criptografado/armazenado)
   - **Arquivos:** `modules/auth/github-oauth.service.ts`
 
-- [ ] **2.2 Teams Management** (Média prioridade)
+- [ ] **2.2 Teams Management** (Em Progresso) 🚧
   - Endpoints:
     - POST /teams (criar team)
     - GET /teams (listar teams do user)
