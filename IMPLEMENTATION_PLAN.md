@@ -1114,6 +1114,21 @@ const queryClient = new QueryClient({
 **Objetivo:** Tornar o produto minimamente funcional de ponta a ponta
 
 #### Backend
+- [x] **Repository Management** ✅ IMPLEMENTADO
+  - ✅ Tabela `repositories` criada no schema
+  - ✅ Migration executada (0004_tense_tarantula.sql)
+  - ✅ Módulo completo (service, controller, routes, schemas)
+  - ✅ Endpoint `GET /github/repositories` - listar repos do GitHub via Octokit
+  - ✅ Endpoint `POST /repositories/sync` - sincronizar repositório no DB
+  - ✅ Endpoint `GET /repositories` - listar repos sincronizados (paginado)
+  - ✅ Endpoint `GET /repositories/:id` - obter repositório específico
+  - ✅ Endpoint `PATCH /repositories/:id` - ativar/desativar repositório
+  - ✅ Endpoint `DELETE /repositories/:id` - deletar repositório
+  - ✅ Validação no `review.service.ts` - só permite reviews em repos ativos
+  - ✅ Integração com GitHubService para listar repositórios do usuário
+  - ❌ UI do frontend (pendente)
+  - **Status**: Backend completo e funcional
+
 - [ ] **1.1 GitHub Comment Posting** (Alta prioridade)
   - Implementar postagem de comentários inline no PR
   - Usar Octokit para criar review comments
@@ -1181,11 +1196,11 @@ const queryClient = new QueryClient({
 **Objetivo:** Melhorar experiência do usuário e adicionar features esperadas
 
 #### Backend
-- [ ] **2.1 Repository Management** (Alta Prioridade)
-  - ✅ GitHub App / OAuth Client configurado para ler repositórios
-  - Endpoint: `GET /github/repositories` (Listar repos do usuário via Octokit)
-  - Endpoint: `POST /repositories/sync` (Salvar repositório selecionado no DB)
-  - Tabela: `repositories` (id, userId, githubRepoId, name, enabled)
+- [x] **2.1 Repository Management** ✅ COMPLETO (movido para Fase 1)
+  - ✅ Tabela `repositories` criada e migration executada
+  - ✅ Endpoints CRUD completos (GET, POST, PATCH, DELETE)
+  - ✅ Integração com GitHub API via Octokit
+  - ✅ Validação em reviews (só repositórios ativos)
   - **Arquivos:** `modules/repositories/`
 
 - [x] **2.2 GitHub OAuth** (Alta prioridade)
@@ -1225,12 +1240,16 @@ const queryClient = new QueryClient({
   - **Arquivos:** `websocket/`, `review.worker.ts`
 
 #### Frontend
-- [ ] **2.6 Repository Selection UI** (Alta Prioridade)
-  - Página: `/dashboard/repositories`
-  - Lista de repositórios vindos do GitHub (com search/filter)
-  - Toggle switch para ativar/desativar repositório
-  - Feedback visual de "Syncing"
+- [ ] **2.6 Repository Selection UI** (Alta Prioridade) - PRÓXIMA TAREFA
+  - ❌ Página: `/dashboard/repositories`
+  - ❌ Integração com backend (`GET /github/repositories`, `POST /repositories/sync`)
+  - ❌ Lista de repositórios vindos do GitHub (com search/filter)
+  - ❌ Botão "Sync" para sincronizar repositório
+  - ❌ Toggle switch para ativar/desativar repositório (PATCH endpoint)
+  - ❌ Feedback visual de "Syncing" e status enabled/disabled
+  - ❌ React Query para data fetching
   - **Arquivos:** `app/dashboard/repositories/page.tsx`
+  - **Backend:** ✅ Pronto e aguardando integração
 
 - [x] **2.7 GitHub OAuth Flow** (Alta prioridade)
   - ✅ Integrar com backend endpoints
@@ -1508,6 +1527,21 @@ const queryClient = new QueryClient({
 | GET | `/analytics/dashboard` | JWT | Dashboard stats (total, monthly, success rate) |
 | GET | `/analytics/usage` | JWT | Usage stats por período (?days=30) |
 
+### Repositories ✅ IMPLEMENTADO
+
+| Método | Endpoint | Auth | Descrição |
+|--------|----------|------|-----------|
+| GET | `/github/repositories` | JWT | Listar repositórios do GitHub do usuário (via Octokit) |
+| POST | `/repositories/sync` | JWT | Sincronizar repositório do GitHub para o DB |
+| GET | `/repositories` | JWT | Listar repositórios sincronizados (query: page, limit, isEnabled) |
+| GET | `/repositories/:id` | JWT | Obter repositório específico |
+| PATCH | `/repositories/:id` | JWT | Atualizar repositório (ativar/desativar) |
+| DELETE | `/repositories/:id` | JWT | Deletar repositório |
+
+**Validação Integrada:**
+- `POST /v1/reviews` agora valida se o repositório está sincronizado e ativo antes de criar review
+- Retorna erro 403 se repositório não estiver habilitado
+
 ### Teams [TODO]
 
 | Método | Endpoint | Auth | Descrição |
@@ -1682,6 +1716,39 @@ CREATE TABLE usageAnalytics (
 - `userId`
 - `date`
 - `(userId, date)` (unique composite)
+
+---
+
+### Tabela: `repositories` ✅ IMPLEMENTADO
+
+```sql
+CREATE TABLE repositories (
+  id VARCHAR(36) PRIMARY KEY,
+  user_id VARCHAR(36) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  github_repo_id INTEGER NOT NULL,
+  full_name VARCHAR(255) NOT NULL, -- owner/repo-name
+  name VARCHAR(255) NOT NULL,
+  owner VARCHAR(255) NOT NULL,
+  description TEXT,
+  is_private BOOLEAN DEFAULT false NOT NULL,
+  is_enabled BOOLEAN DEFAULT true NOT NULL,
+  default_branch VARCHAR(100) DEFAULT 'main',
+  language VARCHAR(50),
+  created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+  updated_at TIMESTAMP DEFAULT NOW() NOT NULL
+);
+```
+
+**Índices:**
+- `user_id`
+- `full_name`
+- `is_enabled`
+- `(user_id, github_repo_id)` (unique composite - previne duplicatas)
+
+**Relações:**
+- Um usuário pode ter múltiplos repositórios sincronizados
+- Cada repositório pertence a um único usuário
+- Reviews só são criados para repositórios com `is_enabled: true`
 
 ---
 

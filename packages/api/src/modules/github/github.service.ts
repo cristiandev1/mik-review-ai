@@ -86,6 +86,36 @@ export class GitHubService {
   }
 
   /**
+   * List repositories for the authenticated user
+   */
+  async listUserRepositories(page: number = 1, perPage: number = 30) {
+    try {
+      const { data } = await this.octokit.repos.listForAuthenticatedUser({
+        page,
+        per_page: perPage,
+        sort: 'updated',
+        direction: 'desc',
+      });
+
+      return data.map((repo) => ({
+        githubRepoId: repo.id,
+        fullName: repo.full_name,
+        name: repo.name,
+        owner: repo.owner.login,
+        description: repo.description,
+        isPrivate: repo.private,
+        defaultBranch: repo.default_branch,
+        language: repo.language,
+        htmlUrl: repo.html_url,
+        updatedAt: repo.updated_at,
+      }));
+    } catch (error: any) {
+      logger.error(error, 'Failed to list user repositories from GitHub');
+      throw new Error(`GitHub API error: ${error.message}`);
+    }
+  }
+
+  /**
    * Post a review with comments to a GitHub Pull Request
    */
   async postReviewComments(

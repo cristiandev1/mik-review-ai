@@ -124,6 +124,23 @@ export const passwordResetTokens = pgTable('password_reset_tokens', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+// Repositories Table
+export const repositories = pgTable('repositories', {
+  id: varchar('id', { length: 36 }).primaryKey(),
+  userId: varchar('user_id', { length: 36 }).references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  githubRepoId: integer('github_repo_id').notNull(), // GitHub repository ID
+  fullName: varchar('full_name', { length: 255 }).notNull(), // owner/repo-name
+  name: varchar('name', { length: 255 }).notNull(),
+  owner: varchar('owner', { length: 255 }).notNull(),
+  description: text('description'),
+  isPrivate: boolean('is_private').default(false).notNull(),
+  isEnabled: boolean('is_enabled').default(true).notNull(),
+  defaultBranch: varchar('default_branch', { length: 100 }).default('main'),
+  language: varchar('language', { length: 50 }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   apiKeys: many(apiKeys),
@@ -135,6 +152,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   subscriptions: many(subscriptions),
   verificationTokens: many(emailVerificationTokens),
   passwordResetTokens: many(passwordResetTokens),
+  repositories: many(repositories),
 }));
 
 export const apiKeysRelations = relations(apiKeys, ({ one }) => ({
@@ -168,6 +186,13 @@ export const teamMembersRelations = relations(teamMembers, ({ one }) => ({
   }),
   user: one(users, {
     fields: [teamMembers.userId],
+    references: [users.id],
+  }),
+}));
+
+export const repositoriesRelations = relations(repositories, ({ one }) => ({
+  user: one(users, {
+    fields: [repositories.userId],
     references: [users.id],
   }),
 }));
