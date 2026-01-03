@@ -7,7 +7,7 @@ import { nanoid } from 'nanoid';
 import { env } from '../../config/env.js';
 import { VerificationService } from '../verification/verification.service.js';
 import type { SignupInput, LoginInput } from './auth.schemas.js';
-import { AppError, ConflictError, UnauthorizedError, NotFoundError } from '../../shared/errors/app-error.js';
+import { ConflictError, UnauthorizedError, NotFoundError } from '../../shared/errors/app-error.js';
 import { logger } from '../../shared/utils/logger.js';
 
 export class AuthService {

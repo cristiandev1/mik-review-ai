@@ -108,12 +108,6 @@ export class RepositoryService {
 
       const repos = await query;
 
-      // Get total count
-      const [countResult] = await db
-        .select({ count: repositories.id })
-        .from(repositories)
-        .where(eq(repositories.userId, userId));
-
       return {
         repositories: repos,
         total: repos.length,
