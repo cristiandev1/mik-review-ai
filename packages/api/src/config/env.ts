@@ -20,10 +20,8 @@ const envSchema = z.object({
   JWT_EXPIRES_IN: z.string().default('15m'),
   JWT_REFRESH_EXPIRES_IN: z.string().default('7d'),
 
-  // AI Providers
+  // AI Provider
   DEEPSEEK_API_KEY: z.string().optional(),
-  OPENAI_API_KEY: z.string().optional(),
-  ANTHROPIC_API_KEY: z.string().optional(),
 
   // GitHub
   GITHUB_APP_ID: z.string().optional(),

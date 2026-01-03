@@ -134,7 +134,7 @@
 | Validation | Zod | 3.22.4 | Schema validation |
 | Logger | Pino | 8.17.2 | Structured logging |
 | GitHub API | Octokit | 20.0.2 | GitHub integration |
-| AI SDK | OpenAI SDK | 4.24.1 | AI provider wrapper (DeepSeek compatible) |
+| AI SDK | OpenAI SDK | 4.24.1 | DeepSeek provider (uses OpenAI-compatible SDK) |
 | Testing | Vitest | 1.1.0 | Unit testing |
 
 ### Frontend (packages/dashboard)
@@ -328,10 +328,11 @@ jobs:
   - ✅ Error handling robusto (não falha job se posting falhar)
   - **Status**: Completamente funcional
 
-- [ ] **AI Providers**
+- [x] **AI Provider** ✅ COMPLETO
   - ✅ Interface abstrata AIProvider
-  - ✅ DeepSeek provider completo
-  - **Impacto**: Usuários utilizam o DeepSeek como provider padrão.
+  - ✅ DeepSeek provider completo (único provider suportado)
+  - ✅ Focado em custo-benefício e performance
+  - **Status**: DeepSeek é o único provider - sem suporte a outros modelos
 
 - [x] **Custom Rules** ✅ IMPLEMENTADO (Backend)
   - ✅ Tabela customRules no schema
@@ -486,9 +487,7 @@ packages/api/src/
 │   │   ├── ai.service.ts       # AI service orchestrator
 │   │   ├── ai.interface.ts     # AIProvider interface
 │   │   └── providers/
-│   │       ├── deepseek.provider.ts   # ✅ Implementado
-│   │       ├── openai.provider.ts     # ❌ Stub
-│   │       └── claude.provider.ts     # ❌ Stub
+│   │       └── deepseek.provider.ts   # ✅ Implementado (único provider)
 │   │
 │   └── rate-limit/
 │       └── rate-limit.service.ts      # Rate limit logic
@@ -742,16 +741,7 @@ interface AIReviewOutput {
 - Model: `deepseek-chat`
 - Prompt engineering para retornar JSON estruturado
 - Parse de resposta com fallback
-
-**TODO: OpenAI Provider**
-- Usar OpenAI SDK oficial
-- Model: `gpt-4-turbo-preview`
-- Mesmo formato de resposta
-
-**TODO: Claude Provider**
-- Usar Anthropic SDK
-- Model: `claude-3-opus-20240229`
-- Adaptar formato de resposta
+- **Único provider suportado** - focado em custo-benefício e performance
 
 ---
 
@@ -1136,26 +1126,20 @@ const queryClient = new QueryClient({
   - Testar com PRs reais
   - **Arquivos:** `review.worker.ts`, `github.service.ts`
 
-- [ ] **1.2 OpenAI Provider** (Média prioridade)
-  - Implementar `openai.provider.ts`
-  - Configurar credenciais
-  - Testar qualidade de reviews vs DeepSeek
-  - **Arquivos:** `ai/providers/openai.provider.ts`
-
-- [ ] **1.3 Custom Rules Integration** (Alta prioridade)
+- [ ] **1.2 Custom Rules Integration** (Alta prioridade)
   - Endpoints: GET, POST, PUT, DELETE /custom-rules
   - Controller e service
   - Modificar worker para usar custom rules se existirem
   - **Arquivos:** Novo módulo `modules/custom-rules/`
 
-- [x] **1.4 Error Handling** (Alta prioridade)
+- [x] **1.3 Error Handling** (Alta prioridade)
   - ✅ Centralizar error handling (Fastify error handler)
   - ✅ Padronizar responses de erro (AppError)
   - ✅ Logging de erros (Pino + Global Handler)
   - ❌ Retry logic para falhas temporárias (GitHub API) (Parcialmente via Redis/BullMQ)
   - **Arquivos:** `shared/errors/`, middleware
 
-- [ ] **1.5 Email Verification** (Média prioridade)
+- [ ] **1.4 Email Verification** (Média prioridade)
   - Enviar email de confirmação no signup
   - Endpoint: POST /auth/verify-email/:token
   - Bloquear uso até verificar (opcional)
@@ -1163,20 +1147,20 @@ const queryClient = new QueryClient({
   - **Arquivos:** Novo módulo `modules/email/`
 
 #### Frontend
-- [x] **1.6 Review Detail Page** (Alta prioridade)
+- [x] **1.5 Review Detail Page** (Alta prioridade)
   - ✅ Rota: /dashboard/reviews/:id
   - ✅ Mostrar resumo e comentários
   - ✅ Integração com API via React Query
   - **Arquivos:** `app/dashboard/reviews/[id]/page.tsx`
 
-- [ ] **1.7 Error Handling UI** (Alta prioridade)
+- [ ] **1.6 Error Handling UI** (Alta prioridade)
   - Error boundaries
   - Toast notifications (sonner ou react-hot-toast)
   - Loading states consistentes
   - Retry buttons em falhas
   - **Arquivos:** `components/error-boundary.tsx`, `lib/toast.ts`
 
-- [ ] **1.8 Custom Rules UI** (Média prioridade)
+- [ ] **1.7 Custom Rules UI** (Média prioridade)
   - Página: /dashboard/settings/rules
   - Editor Monaco ou CodeMirror
   - Save/load rules
@@ -1184,7 +1168,7 @@ const queryClient = new QueryClient({
   - **Arquivos:** `app/dashboard/settings/rules/page.tsx`
 
 #### Testes
-- [ ] **1.9 Unit Tests** (Alta prioridade)
+- [ ] **1.8 Unit Tests** (Alta prioridade)
   - Testes para services críticos (auth, reviews, ai)
   - Coverage mínimo: 60%
   - **Framework:** Vitest
@@ -1859,11 +1843,8 @@ JWT_SECRET=your-super-secret-key-min-32-characters-long
 JWT_EXPIRES_IN=15m
 JWT_REFRESH_EXPIRES_IN=7d
 
-# AI Providers
+# AI Provider
 DEEPSEEK_API_KEY=sk-...
-OPENAI_API_KEY=sk-... # Opcional
-ANTHROPIC_API_KEY=sk-... # Opcional
-DEFAULT_AI_PROVIDER=deepseek # deepseek | openai | claude
 
 # GitHub
 GITHUB_APP_ID=123456 # Opcional para OAuth
@@ -2014,7 +1995,7 @@ GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Auto-provido
 | Risco | Impacto | Mitigação |
 |-------|---------|-----------|
 | GitHub API rate limits | Alto | Implementar caching, usar GitHub Apps |
-| DeepSeek API downtime | Médio | Fallback para OpenAI, retry logic |
+| DeepSeek API downtime | Médio | Retry logic, graceful degradation |
 | Spam/abuse de reviews | Médio | Email verification, rate limiting |
 | Custos de AI scaling | Alto | Monitoring de usage, alertas |
 | Database performance | Médio | Índices, connection pooling, read replicas |
