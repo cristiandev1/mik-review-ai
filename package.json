@@ -6,7 +6,6 @@
   "scripts": {
     "dev": "pnpm --filter @mik-review-ai/api dev",
     "build": "pnpm -r build",
-    "build:action": "pnpm --filter @mik-review-ai/action build",
     "build:api": "pnpm --filter @mik-review-ai/api build",
     "test": "pnpm -r test",
     "lint": "pnpm -r lint",
@@ -15,7 +14,6 @@
   "keywords": [
     "code-review",
     "ai",
-    "github-action",
     "monorepo"
   ],
   "author": "Mik Review AI",
