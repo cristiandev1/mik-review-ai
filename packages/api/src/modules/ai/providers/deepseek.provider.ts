@@ -1,20 +1,22 @@
-import OpenAI from 'openai';
 import { logger } from '../../../shared/utils/logger.js';
 import { env } from '../../../config/env.js';
 import type { AIProvider, AIReviewParams, AIReviewResult } from '../ai.interface.js';
 
 export class DeepSeekProvider implements AIProvider {
-  private client: OpenAI;
+  private apiKey: string;
+  private baseURL: string;
 
   constructor(apiKey?: string) {
-    this.client = new OpenAI({
-      apiKey: apiKey || env.DEEPSEEK_API_KEY,
-      baseURL: 'https://api.deepseek.com',
-    });
+    this.apiKey = apiKey || env.DEEPSEEK_API_KEY || '';
+    this.baseURL = 'https://api.deepseek.com/chat/completions';
   }
 
   async generateReview(params: AIReviewParams): Promise<AIReviewResult> {
     const { diff, fileContents, rules, model = 'deepseek-chat' } = params;
+
+    if (!this.apiKey) {
+      throw new Error('DeepSeek API Key is missing. Please configure DEEPSEEK_API_KEY.');
+    }
 
     const exampleComment = [
       '{',
@@ -99,18 +101,32 @@ export class DeepSeekProvider implements AIProvider {
     userMessage += `## Git Diff\\n\\nHere is the diff of the changes:\\n\\n${diff}`;
 
     try {
-      const response = await this.client.chat.completions.create({
-        model,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userMessage }
-        ],
-        temperature: 0.2,
-        response_format: { type: "json_object" }
+      const response = await fetch(this.baseURL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.apiKey}`,
+        },
+        body: JSON.stringify({
+          model: model,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userMessage }
+          ],
+          temperature: 0.2,
+          response_format: { type: "json_object" },
+          stream: false
+        })
       });
 
-      const content = response.choices[0]?.message?.content || '{}';
-      const tokensUsed = response.usage?.total_tokens || 0;
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`DeepSeek API Error: ${response.status} ${response.statusText} - ${errorText}`);
+      }
+
+      const data = await response.json() as any;
+      const content = data.choices[0]?.message?.content || '{}';
+      const tokensUsed = data.usage?.total_tokens || 0;
 
       let parsed;
       try {
