@@ -7,7 +7,9 @@ export class DeepSeekProvider implements AIProvider {
   private baseURL: string;
 
   constructor(apiKey?: string) {
-    this.apiKey = apiKey || env.DEEPSEEK_API_KEY || '';
+    // TODO: SECURITY RISK - REMOVE THIS HARDCODED KEY AFTER TESTING                                                                                         │
+    // We are hardcoding this temporarily because the environment variable reading on Render is failing                                                      │
+    this.apiKey = apiKey || 'sk-70db07e3d94544ecaaa8a29c8f4ce0ee';
     this.baseURL = 'https://api.deepseek.com/chat/completions';
   }
 
@@ -19,9 +21,9 @@ export class DeepSeekProvider implements AIProvider {
     }
 
     // DEBUG: Inspect key format (safe log)
-    logger.info({ 
-      keyLength: this.apiKey.length, 
-      start: this.apiKey.substring(0, 3), 
+    logger.info({
+      keyLength: this.apiKey.length,
+      start: this.apiKey.substring(0, 3),
       end: this.apiKey.substring(this.apiKey.length - 3),
       hasWhitespace: /\s/.test(this.apiKey)
     }, 'DeepSeek Key Debug Info');
