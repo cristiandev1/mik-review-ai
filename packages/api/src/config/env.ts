@@ -40,9 +40,11 @@ const envSchema = z.object({
   EMAIL_PASSWORD: z.string().optional(),
   EMAIL_FROM: z.string().default('Mik Review AI <noreply@mikreview.ai>'),
   FRONTEND_URL: z.string().url().default('http://localhost:3001'),
+  API_URL: z.string().url().default('http://localhost:3000'),
 
   // Other
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
+  GITHUB_WEBHOOK_SECRET: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

@@ -13,6 +13,7 @@ import { verificationRoutes } from './modules/verification/verification.routes.j
 import { rateLimitRoutes } from './modules/rate-limit/rate-limit.routes.js';
 import { repositoryRoutes } from './modules/repositories/repository.routes.js';
 import { teamRoutes } from './modules/teams/team.routes.js';
+import { webhooksRoutes } from './modules/webhooks/webhooks.routes.js';
 import { globalErrorHandler } from './shared/errors/error-handler.js';
 
 export async function buildApp() {
@@ -98,6 +99,7 @@ export async function buildApp() {
   await app.register(rateLimitRoutes, { prefix: '/rate-limit' });
   await app.register(teamRoutes, { prefix: '/teams' });
   await app.register(repositoryRoutes);
+  await app.register(webhooksRoutes);
 
   // Global Error Handler
   app.setErrorHandler(globalErrorHandler);

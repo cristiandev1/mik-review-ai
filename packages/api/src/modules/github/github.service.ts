@@ -176,4 +176,49 @@ export class GitHubService {
       throw new Error(`Failed to post GitHub review: ${error.message}`);
     }
   }
+
+  /**
+   * Create a webhook for a repository
+   */
+  async createWebhook(owner: string, repo: string, webhookUrl: string, secret: string) {
+    try {
+      const { data } = await this.octokit.repos.createWebhook({
+        owner,
+        repo,
+        config: {
+          url: webhookUrl,
+          content_type: 'json',
+          secret,
+        },
+        events: ['pull_request'],
+        active: true,
+      });
+
+      logger.info({ owner, repo, webhookId: data.id }, 'Webhook created');
+      return data.id;
+    } catch (error: any) {
+      logger.error({ err: error, owner, repo }, 'Failed to create webhook');
+      throw new Error(`Failed to create webhook: ${error.message}`);
+    }
+  }
+
+  /**
+   * Delete a webhook
+   */
+  async deleteWebhook(owner: string, repo: string, hookId: number) {
+    try {
+      await this.octokit.repos.deleteWebhook({
+        owner,
+        repo,
+        hook_id: hookId,
+      });
+      logger.info({ owner, repo, hookId }, 'Webhook deleted');
+    } catch (error: any) {
+      logger.error({ err: error, owner, repo, hookId }, 'Failed to delete webhook');
+      // Don't throw if it's already gone (404)
+      if (error.status !== 404) {
+        throw new Error(`Failed to delete webhook: ${error.message}`);
+      }
+    }
+  }
 }
