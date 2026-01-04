@@ -5,10 +5,11 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc",
+    "build": "tsc && cp -r src/database/migrations dist/database/",
     "start": "node dist/index.js",
     "db:generate": "drizzle-kit generate:pg",
     "db:migrate": "tsx src/database/migrate.ts",
+    "db:migrate:prod": "node dist/database/migrate.js",
     "db:seed": "tsx src/database/seed.ts",
     "test": "vitest",
     "lint": "eslint src --ext .ts"
