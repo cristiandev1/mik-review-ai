@@ -22,6 +22,11 @@ export function Sidebar({ className }: SidebarProps) {
       icon: "key",
     },
     {
+      title: "Custom Rules",
+      href: "/dashboard/custom-rules",
+      icon: "pencil",
+    },
+    {
       title: "Analytics",
       href: "/dashboard/analytics",
       icon: "analytics",
