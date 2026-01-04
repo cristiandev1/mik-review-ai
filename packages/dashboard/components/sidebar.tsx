@@ -17,6 +17,11 @@ export function Sidebar({ className }: SidebarProps) {
       icon: "dashboard",
     },
     {
+      title: "Repositories",
+      href: "/dashboard/repositories",
+      icon: "gitBranch",
+    },
+    {
       title: "API Keys",
       href: "/dashboard/api-keys",
       icon: "key",
