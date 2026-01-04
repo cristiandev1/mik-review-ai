@@ -116,6 +116,7 @@ export class AuthService {
         name: users.name,
         plan: users.plan,
         emailVerified: users.emailVerified,
+        githubAccessToken: users.githubAccessToken,
         createdAt: users.createdAt,
       })
       .from(users)
