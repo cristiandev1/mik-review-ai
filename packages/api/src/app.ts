@@ -41,9 +41,13 @@ export async function buildApp() {
   });
 
   await app.register(cors, {
-    origin: env.NODE_ENV === 'production' 
-      ? ['https://dashboard.mik-review.ai'] 
-      : true,
+    origin: [
+      'https://mik-review-ai-dashboard.vercel.app',
+      'https://dashboard.mik-review.ai',
+      /\.vercel\.app$/ // Permite subdomínios da vercel para deploy de preview
+    ],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-api-key'],
     credentials: true,
   });
 
