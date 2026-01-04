@@ -36,7 +36,8 @@ export class RepositoryController {
       const repositories = await githubService.listUserRepositories(page, perPage);
 
       return reply.send({
-        repositories,
+        success: true,
+        data: repositories,
         page,
         perPage,
       });
@@ -63,8 +64,9 @@ export class RepositoryController {
       const repository = await repositoryService.syncRepository(user.id, validatedData);
 
       return reply.status(201).send({
+        success: true,
         message: 'Repository synced successfully',
-        repository,
+        data: repository,
       });
     } catch (error: any) {
       logger.error(error, 'Failed to sync repository');
@@ -102,7 +104,13 @@ export class RepositoryController {
 
       const result = await repositoryService.listUserRepositories(user.id, options);
 
-      return reply.send(result);
+      return reply.send({
+        success: true,
+        data: result.repositories,
+        total: result.total,
+        page: result.page,
+        limit: result.limit,
+      });
     } catch (error: any) {
       logger.error(error, 'Failed to list repositories');
 
@@ -135,11 +143,15 @@ export class RepositoryController {
 
       if (!repository) {
         return reply.status(404).send({
+          success: false,
           error: 'Repository not found',
         });
       }
 
-      return reply.send({ repository });
+      return reply.send({
+        success: true,
+        data: repository,
+      });
     } catch (error: any) {
       logger.error(error, 'Failed to get repository');
       return reply.status(500).send({
@@ -164,8 +176,9 @@ export class RepositoryController {
       const repository = await repositoryService.updateRepository(id, user.id, validatedData);
 
       return reply.send({
+        success: true,
         message: 'Repository updated successfully',
-        repository,
+        data: repository,
       });
     } catch (error: any) {
       logger.error(error, 'Failed to update repository');
@@ -204,6 +217,7 @@ export class RepositoryController {
       await repositoryService.deleteRepository(id, user.id);
 
       return reply.send({
+        success: true,
         message: 'Repository deleted successfully',
       });
     } catch (error: any) {

@@ -68,9 +68,10 @@ export default function RepositoriesPage() {
         throw new Error(data.error || 'Failed to fetch repositories');
       }
 
-      setSyncedRepos(data.data);
+      setSyncedRepos(data.data || []);
     } catch (err: any) {
       setError(err.message);
+      setSyncedRepos([]); // Ensure it's always an array
     } finally {
       setLoading(false);
     }
@@ -92,10 +93,11 @@ export default function RepositoriesPage() {
         throw new Error(data.error || 'Failed to fetch GitHub repositories');
       }
 
-      setGithubRepos(data.data);
+      setGithubRepos(data.data || []);
       setShowGithubRepos(true);
     } catch (err: any) {
       setError(err.message);
+      setGithubRepos([]); // Ensure it's always an array
     } finally {
       setLoading(false);
     }
@@ -191,12 +193,12 @@ export default function RepositoriesPage() {
     }
   };
 
-  const filteredGithubRepos = githubRepos.filter(repo =>
+  const filteredGithubRepos = (githubRepos || []).filter(repo =>
     repo.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (repo.description && repo.description.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
-  const filteredSyncedRepos = syncedRepos.filter(repo =>
+  const filteredSyncedRepos = (syncedRepos || []).filter(repo =>
     repo.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (repo.description && repo.description.toLowerCase().includes(searchQuery.toLowerCase()))
   );

@@ -241,4 +241,95 @@ export class AnalyticsService {
       },
     };
   }
+
+  /**
+   * Backfill analytics from existing reviews
+   * Useful for populating analytics for reviews created before analytics tracking was added
+   */
+  async backfillAnalytics(userId: string): Promise<{ processed: number }> {
+    // Get all completed reviews for this user
+    const completedReviews = await db
+      .select({
+        id: reviews.id,
+        repository: reviews.repository,
+        tokensUsed: reviews.tokensUsed,
+        processingTime: reviews.processingTime,
+        createdAt: reviews.createdAt,
+      })
+      .from(reviews)
+      .where(
+        and(
+          eq(reviews.userId, userId),
+          eq(reviews.status, 'completed')
+        )
+      )
+      .orderBy(reviews.createdAt);
+
+    let processed = 0;
+
+    for (const review of completedReviews) {
+      try {
+        // Group by date
+        const reviewDate = new Date(review.createdAt);
+        reviewDate.setHours(0, 0, 0, 0);
+
+        // Check if analytics record exists for this date
+        const existing = await db
+          .select()
+          .from(usageAnalytics)
+          .where(
+            and(
+              eq(usageAnalytics.userId, userId),
+              eq(usageAnalytics.date, reviewDate)
+            )
+          )
+          .limit(1);
+
+        if (existing.length > 0) {
+          // Update existing record
+          const current = existing[0];
+          const newReviewsCount = current.reviewsCount + 1;
+          const newTokensUsed = current.tokensUsed + (review.tokensUsed || 0);
+
+          // Calculate new average processing time
+          const totalProcessingTime = current.avgProcessingTime * current.reviewsCount + (review.processingTime || 0);
+          const newAvgProcessingTime = Math.floor(totalProcessingTime / newReviewsCount);
+
+          // Add repository if not already in list
+          const repositories = current.repositories || [];
+          if (!repositories.includes(review.repository)) {
+            repositories.push(review.repository);
+          }
+
+          await db
+            .update(usageAnalytics)
+            .set({
+              reviewsCount: newReviewsCount,
+              tokensUsed: newTokensUsed,
+              avgProcessingTime: newAvgProcessingTime,
+              repositories,
+            })
+            .where(eq(usageAnalytics.id, current.id));
+        } else {
+          // Create new record
+          await db.insert(usageAnalytics).values({
+            id: nanoid(),
+            userId,
+            date: reviewDate,
+            reviewsCount: 1,
+            tokensUsed: review.tokensUsed || 0,
+            avgProcessingTime: review.processingTime || 0,
+            repositories: [review.repository],
+          });
+        }
+
+        processed++;
+      } catch (error: any) {
+        // Log error but continue processing other reviews
+        console.error(`Failed to backfill analytics for review ${review.id}:`, error);
+      }
+    }
+
+    return { processed };
+  }
 }

@@ -135,12 +135,21 @@ Focus on code quality, performance, security, and maintainability.
     }
 
     // Step 7: Track analytics
-    await analyticsService.trackReview(
-      userId,
-      repository,
-      tokensUsed,
-      processingTime
-    );
+    try {
+      await analyticsService.trackReview(
+        userId,
+        repository,
+        tokensUsed,
+        processingTime
+      );
+      logger.info({ reviewId, userId }, 'Analytics tracked successfully');
+    } catch (analyticsError: any) {
+      // Log error but don't fail the entire job
+      logger.error(
+        { err: analyticsError, reviewId, userId },
+        'Failed to track analytics, but review was completed successfully'
+      );
+    }
 
     await job.updateProgress(100);
 

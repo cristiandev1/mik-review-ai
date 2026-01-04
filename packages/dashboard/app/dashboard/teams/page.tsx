@@ -47,9 +47,10 @@ export default function TeamsPage() {
         throw new Error(data.error || 'Failed to fetch teams');
       }
 
-      setTeams(data.data);
+      setTeams(data.data || []);
     } catch (err: any) {
       setError(err.message);
+      setTeams([]); // Ensure it's always an array
     } finally {
       setLoading(false);
     }
@@ -119,14 +120,14 @@ export default function TeamsPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {teams.length === 0 ? (
+            {(teams || []).length === 0 ? (
                <TableRow>
                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                    No teams found. Create one to start collaborating with your team.
                  </TableCell>
                </TableRow>
             ) : (
-                teams.map((team) => (
+                (teams || []).map((team) => (
                   <TableRow key={team.id}>
                     <TableCell className="font-medium">{team.name}</TableCell>
                     <TableCell>

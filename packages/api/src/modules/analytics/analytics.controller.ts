@@ -63,4 +63,31 @@ export class AnalyticsController {
       });
     }
   }
+
+  async backfillAnalytics(request: FastifyRequest, reply: FastifyReply) {
+    try {
+      const userId = (request as any).userId;
+
+      if (!userId) {
+        return reply.code(401).send({
+          success: false,
+          error: 'Unauthorized',
+        });
+      }
+
+      const result = await analyticsService.backfillAnalytics(userId);
+
+      return reply.code(200).send({
+        success: true,
+        data: result,
+        message: `Successfully backfilled analytics for ${result.processed} reviews`,
+      });
+    } catch (error: any) {
+      request.log.error(error);
+      return reply.code(500).send({
+        success: false,
+        error: error.message || 'Failed to backfill analytics',
+      });
+    }
+  }
 }

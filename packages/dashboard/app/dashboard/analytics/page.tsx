@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Icons } from "@/components/icons"
 import {
@@ -24,6 +25,7 @@ export default function AnalyticsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [days, setDays] = useState(30);
+  const [backfilling, setBackfilling] = useState(false);
 
   const fetchAnalytics = useCallback(async () => {
     try {
@@ -49,6 +51,32 @@ export default function AnalyticsPage() {
   useEffect(() => {
     fetchAnalytics();
   }, [fetchAnalytics]);
+
+  const handleBackfill = async () => {
+    setBackfilling(true);
+    setError('');
+
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/analytics/backfill`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to backfill analytics');
+      }
+
+      // Refresh analytics data
+      await fetchAnalytics();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setBackfilling(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -151,8 +179,18 @@ export default function AnalyticsPage() {
                 <TableBody>
                   {stats.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                        No data available for this period.
+                      <TableCell colSpan={5} className="text-center py-12">
+                        <div className="flex flex-col items-center gap-4">
+                          <p className="text-muted-foreground">No analytics data available for this period.</p>
+                          <Button
+                            onClick={handleBackfill}
+                            disabled={backfilling}
+                            size="sm"
+                          >
+                            {backfilling && <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />}
+                            Sync Analytics Data
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ) : (

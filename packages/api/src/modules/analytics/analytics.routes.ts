@@ -13,4 +13,8 @@ export async function analyticsRoutes(app: FastifyInstance) {
   app.get('/dashboard', {
     preHandler: [authMiddleware],
   }, controller.getDashboard.bind(controller));
+
+  app.post('/backfill', {
+    preHandler: [authMiddleware],
+  }, controller.backfillAnalytics.bind(controller));
 }
