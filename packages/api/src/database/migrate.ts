@@ -3,11 +3,7 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import { migrationClient } from '../config/database.js';
 import { logger } from '../shared/utils/logger.js';
 import path from 'path';
-import { fileURLToPath } from 'url';
 import fs from 'fs';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 async function runMigrations() {
   try {
@@ -15,24 +11,31 @@ async function runMigrations() {
 
     const db = drizzle(migrationClient);
 
-    // Determine migrations folder path
-    // In dev: src/database/migrations
-    // In prod: dist/database/migrations
-    let migrationsFolder = path.join(__dirname, 'migrations');
+    // Determine migrations folder path using process.cwd()
+    // This is safer than __dirname/import.meta when mixing environments
+    // We expect to run this from packages/api root
     
-    // Fallback or verify
+    // Check for dist location (Production)
+    let migrationsFolder = path.join(process.cwd(), 'dist', 'database', 'migrations');
+    
     if (!fs.existsSync(migrationsFolder)) {
-        // Try looking in src if we are in dev but somehow path is different, 
-        // or up one level if structure is different. 
-        // But with standard compilation, __dirname in dist/database should see migrations sibling.
-        logger.warn(`Migrations folder not found at ${migrationsFolder}, checking alternative locations...`);
-        const srcPath = path.join(process.cwd(), 'src', 'database', 'migrations');
-        if (fs.existsSync(srcPath)) {
-            migrationsFolder = srcPath;
+        // Fallback to src location (Development)
+        migrationsFolder = path.join(process.cwd(), 'src', 'database', 'migrations');
+    }
+
+    if (!fs.existsSync(migrationsFolder)) {
+        // Last attempt: maybe we are running inside dist?
+        // If process.cwd() is .../dist/database
+        if (fs.existsSync(path.join(process.cwd(), 'migrations'))) {
+             migrationsFolder = path.join(process.cwd(), 'migrations');
         }
     }
 
     logger.info(`Using migrations folder: ${migrationsFolder}`);
+
+    if (!fs.existsSync(migrationsFolder)) {
+      throw new Error(`Migrations folder not found. Searched at: ${migrationsFolder}`);
+    }
 
     await migrate(db, {
       migrationsFolder: migrationsFolder,
