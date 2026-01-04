@@ -59,8 +59,8 @@ export default function SignupPage() {
       return;
     }
     const redirectUri = `${window.location.origin}/auth/callback`;
-    const scope = 'user:email';
-    
+    const scope = 'user:email repo';
+
     window.location.href = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}`;
   };
 
