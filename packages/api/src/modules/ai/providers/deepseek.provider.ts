@@ -18,6 +18,14 @@ export class DeepSeekProvider implements AIProvider {
       throw new Error('DeepSeek API Key is missing. Please configure DEEPSEEK_API_KEY.');
     }
 
+    // DEBUG: Inspect key format (safe log)
+    logger.info({ 
+      keyLength: this.apiKey.length, 
+      start: this.apiKey.substring(0, 3), 
+      end: this.apiKey.substring(this.apiKey.length - 3),
+      hasWhitespace: /\s/.test(this.apiKey)
+    }, 'DeepSeek Key Debug Info');
+
     const exampleComment = [
       '{',
       '  "file": "path/to/file.ts",',
