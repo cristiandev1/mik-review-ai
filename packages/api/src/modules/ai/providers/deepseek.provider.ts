@@ -110,12 +110,16 @@ export class DeepSeekProvider implements AIProvider {
 
     userMessage += `## Git Diff\\n\\nHere is the diff of the changes:\\n\\n${diff}`;
 
+    const maskedKey = this.apiKey ? `${this.apiKey.substring(0, 4)}...${this.apiKey.substring(this.apiKey.length - 4)}` : 'undefined';
+    logger.info({ maskedKey }, 'Attempting DeepSeek Request');
+
     try {
       const response = await fetch(this.baseURL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${this.apiKey}`,
+          'User-Agent': 'MikReviewAI/1.0'
         },
         body: JSON.stringify({
           model: model,
