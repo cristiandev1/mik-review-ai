@@ -1,40 +1,34 @@
+import OpenAI from 'openai';
 import { logger } from '../../../shared/utils/logger.js';
-//import { env } from '../../../config/env.js';
+import { env } from '../../../config/env.js';
 import type { AIProvider, AIReviewParams, AIReviewResult } from '../ai.interface.js';
 
 export class DeepSeekProvider implements AIProvider {
-  private apiKey: string;
-  private baseURL: string;
+  private client: OpenAI;
 
   constructor(apiKey?: string) {
-    // TODO: SECURITY RISK - REMOVE THIS HARDCODED KEY AFTER TESTING                                                                                         │
-    // We are hardcoding this temporarily because the environment variable reading on Render is failing                                                      │
-    this.apiKey = apiKey || 'sk-70db07e3d94544ecaaa8a29c8f4ce0ee';
-    this.baseURL = 'https://api.deepseek.com/chat/completions';
+    const key = apiKey || env.DEEPSEEK_API_KEY;
+    if (!key) {
+      throw new Error('DeepSeek API Key is missing. Please configure DEEPSEEK_API_KEY in Render Environment Variables.');
+    }
+
+    // Force OpenAI SDK to be compatible with DeepSeek
+    this.client = new OpenAI({
+      apiKey: key,
+      baseURL: 'https://api.deepseek.com',
+    });
   }
 
   async generateReview(params: AIReviewParams): Promise<AIReviewResult> {
     const { diff, fileContents, rules, model = 'deepseek-chat' } = params;
 
-    if (!this.apiKey) {
-      throw new Error('DeepSeek API Key is missing. Please configure DEEPSEEK_API_KEY.');
-    }
-
-    // DEBUG: Inspect key format (safe log)
-    logger.info({
-      keyLength: this.apiKey.length,
-      start: this.apiKey.substring(0, 3),
-      end: this.apiKey.substring(this.apiKey.length - 3),
-      hasWhitespace: /\s/.test(this.apiKey)
-    }, 'DeepSeek Key Debug Info');
-
     const exampleComment = [
       '{',
       '  "file": "path/to/file.ts",',
       '  "lineNumber": "10",',
-      '  "comment": "Explanation of the issue.\\n\\n**On line 10, replace:**\\n```typescript\\nvar problematicCode = value;\\n```\\n\\n**With:**\\n```typescript\\nconst fixedCode = value; // Use const for immutable values\\n```"',
+      '  "comment": "Explanation of the issue.\n\n**On line 10, replace:**\n```typescript\nvar problematicCode = value;\n```\n\n**With:**\n```typescript\nconst fixedCode = value; // Use const for immutable values\n```"',
       '}'
-    ].join('\\n');
+    ].join('\n');
 
     const systemPrompt = [
       'You are an expert Senior Software Engineer performing a code review.',
@@ -89,58 +83,41 @@ export class DeepSeekProvider implements AIProvider {
       '5. **No Issues:** If everything is good, return empty comments array and summary: "LGTM"',
       '6. **No Emojis:** Do not use emojis in output',
       ''
-    ].join('\\n');
+    ].join('\n');
 
     // Build user message with full file contents
     let userMessage = '';
 
     if (Object.keys(fileContents).length > 0) {
-      userMessage += '## Full File Contents\\n\\n';
-      userMessage += 'Here are the complete files that were modified for better context:\\n\\n';
+      userMessage += '## Full File Contents\n\n';
+      userMessage += 'Here are the complete files that were modified for better context:\n\n';
 
       Object.entries(fileContents).forEach(([filePath, content]) => {
-        userMessage += `### File: ${filePath}\\n`;
-        userMessage += '```\\n';
+        userMessage += `### File: ${filePath}\n`;
+        userMessage += '```\n';
         userMessage += content;
-        userMessage += '\\n```\\n\\n';
+        userMessage += '\n```\n\n';
       });
 
-      userMessage += '---\\n\\n';
+      userMessage += '---\n\n';
     }
 
-    userMessage += `## Git Diff\\n\\nHere is the diff of the changes:\\n\\n${diff}`;
-
-    const maskedKey = this.apiKey ? `${this.apiKey.substring(0, 4)}...${this.apiKey.substring(this.apiKey.length - 4)}` : 'undefined';
-    logger.info({ maskedKey }, 'Attempting DeepSeek Request');
+    userMessage += `## Git Diff\n\nHere is the diff of the changes:\n\n${diff}`;
 
     try {
-      const response = await fetch(this.baseURL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.apiKey}`,
-          'User-Agent': 'MikReviewAI/1.0'
-        },
-        body: JSON.stringify({
-          model: model,
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userMessage }
-          ],
-          temperature: 0.2,
-          response_format: { type: "json_object" },
-          stream: false
-        })
+      const response = await this.client.chat.completions.create({
+        model,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userMessage }
+        ],
+        temperature: 0.2,
+        response_format: { type: "json_object" },
+        stream: false
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`DeepSeek API Error: ${response.status} ${response.statusText} - ${errorText}`);
-      }
-
-      const data = await response.json() as any;
-      const content = data.choices[0]?.message?.content || '{}';
-      const tokensUsed = data.usage?.total_tokens || 0;
+      const content = response.choices[0]?.message?.content || '{}';
+      const tokensUsed = response.usage?.total_tokens || 0;
 
       let parsed;
       try {
