@@ -1,4 +1,4 @@
-import { Loader2, GitBranch, Github, LayoutDashboard, Settings, Key, BarChart3, LogOut, User, Plus, Pencil, Trash2, Globe } from "lucide-react"
+import { Loader2, GitBranch, Github, LayoutDashboard, Settings, Key, BarChart3, LogOut, User, Plus, Pencil, Trash2, Globe, Users } from "lucide-react"
 
 export const Icons = {
   spinner: Loader2,
@@ -10,6 +10,7 @@ export const Icons = {
   analytics: BarChart3,
   logout: LogOut,
   user: User,
+  users: Users,
   plus: Plus,
   pencil: Pencil,
   trash: Trash2,

@@ -32,6 +32,11 @@ export function Sidebar({ className }: SidebarProps) {
       icon: "pencil",
     },
     {
+      title: "Teams",
+      href: "/dashboard/teams",
+      icon: "users",
+    },
+    {
       title: "Analytics",
       href: "/dashboard/analytics",
       icon: "analytics",
