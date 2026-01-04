@@ -1,5 +1,5 @@
 import { logger } from '../../../shared/utils/logger.js';
-import { env } from '../../../config/env.js';
+//import { env } from '../../../config/env.js';
 import type { AIProvider, AIReviewParams, AIReviewResult } from '../ai.interface.js';
 
 export class DeepSeekProvider implements AIProvider {
