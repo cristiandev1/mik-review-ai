@@ -239,8 +239,8 @@ export default function RepositoriesPage() {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
-          allowedUsernames: usernames 
+        body: JSON.stringify({
+          allowedUsernames: usernames
         }),
       });
 
@@ -250,7 +250,15 @@ export default function RepositoriesPage() {
         throw new Error(data.error || 'Failed to update repository settings');
       }
 
+      // Update local state immediately for instant UI feedback
+      setSyncedRepos(syncedRepos.map(repo =>
+        repo.id === editingRepo.id
+          ? { ...repo, allowedUsernames: usernames }
+          : repo
+      ));
+
       setIsSettingsOpen(false);
+      // Refetch in background to ensure consistency
       fetchSyncedRepositories();
     } catch (err: any) {
       setError(err.message);
