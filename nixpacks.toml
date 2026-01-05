@@ -1,0 +1,20 @@
+[phases.setup]
+nixPkgs = ["nodejs_20"]
+
+[phases.install]
+cmds = [
+  "corepack enable",
+  "corepack prepare pnpm@10.27.0 --activate",
+  "pnpm install --frozen-lockfile"
+]
+
+[phases.build]
+cmds = [
+  "pnpm run build:api"
+]
+
+[start]
+cmd = "cd packages/api && pnpm db:migrate:prod && pnpm start"
+
+[variables]
+NODE_ENV = "production"

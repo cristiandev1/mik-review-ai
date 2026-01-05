@@ -3,6 +3,7 @@
   "version": "2.0.0",
   "private": true,
   "description": "Mik Review AI - Code Review Platform powered by AI",
+  "packageManager": "pnpm@10.27.0",
   "scripts": {
     "dev": "pnpm --filter @mik-review-ai/api dev",
     "build": "pnpm -r build",
