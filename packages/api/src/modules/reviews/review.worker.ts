@@ -1,11 +1,12 @@
 import type { Job } from 'bullmq';
 import { db } from '../../config/database.js';
-import { reviews } from '../../database/schema.js';
-import { eq } from 'drizzle-orm';
+import { reviews, repositories } from '../../database/schema.js';
+import { eq, and } from 'drizzle-orm';
 import { GitHubService } from '../github/github.service.js';
 import { AIService } from '../ai/ai.service.js';
 import { AnalyticsService } from '../analytics/analytics.service.js';
 import { CustomRulesService } from '../custom-rules/custom-rules.service.js';
+import { FileFilterService } from './file-filter.service.js';
 import { logger } from '../../shared/utils/logger.js';
 import type { ReviewJobData, ReviewJobResult } from './review.queue.js';
 
@@ -29,6 +30,7 @@ export async function processReviewJob(
     const aiService = new AIService();
     const analyticsService = new AnalyticsService();
     const customRulesService = new CustomRulesService();
+    const fileFilterService = new FileFilterService();
 
     // Step 1: Fetch PR data from GitHub
     logger.info({ reviewId }, 'Fetching PR data from GitHub...');
@@ -36,11 +38,39 @@ export async function processReviewJob(
 
     const prData = await githubService.getPRData(owner, repo, pullRequest);
 
-    // Step 2: Get full file contents
+    // Step 1.5: Fetch repository configuration to get excluded file patterns
+    logger.info({ reviewId }, 'Fetching repository configuration...');
+    const [repositoryConfig] = await db
+      .select()
+      .from(repositories)
+      .where(
+        and(
+          eq(repositories.userId, userId),
+          eq(repositories.fullName, repository)
+        )
+      )
+      .limit(1);
+
+    // Step 2: Filter out excluded files based on repository configuration
+    logger.info({ reviewId }, 'Filtering excluded files...');
+    const filteredFiles = fileFilterService.filterFiles(
+      prData.files,
+      repositoryConfig?.excludedFilePatterns
+    );
+
+    if (filteredFiles.length < prData.files.length) {
+      const excludedCount = prData.files.length - filteredFiles.length;
+      logger.info(
+        { reviewId, excludedCount, totalFiles: prData.files.length },
+        `Excluded ${excludedCount} file(s) based on patterns`
+      );
+    }
+
+    // Step 3: Get full file contents
     logger.info({ reviewId }, 'Fetching file contents...');
     await job.updateProgress(40);
 
-    const filePaths = prData.files.map((f) => f.filename);
+    const filePaths = filteredFiles.map((f) => f.filename);
     const fileContents = await githubService.getMultipleFileContents(
       owner,
       repo,
@@ -48,7 +78,7 @@ export async function processReviewJob(
       prData.pr.head.sha
     );
 
-    // Step 3: Load review rules (try custom rules first, fallback to default)
+    // Step 4: Load review rules (try custom rules first, fallback to default)
     logger.info({ reviewId, userId, repository }, 'Loading review rules...');
 
     let reviewRules: string;
@@ -74,7 +104,7 @@ Focus on code quality, performance, security, and maintainability.
       logger.info({ reviewId, repository }, 'Using default review rules');
     }
 
-    // Step 4: Generate AI review
+    // Step 5: Generate AI review
     logger.info({ reviewId }, 'Generating AI review...');
     await job.updateProgress(60);
 
@@ -87,7 +117,7 @@ Focus on code quality, performance, security, and maintainability.
     const processingTime = Date.now() - startTime;
     const tokensUsed = result.tokensUsed || 0;
 
-    // Step 5: Save results to database
+    // Step 6: Save results to database
     logger.info({ reviewId }, 'Saving review results...');
     await job.updateProgress(80);
 
@@ -104,7 +134,7 @@ Focus on code quality, performance, security, and maintainability.
       })
       .where(eq(reviews.id, reviewId));
 
-    // Step 6: Post review comments to GitHub PR
+    // Step 7: Post review comments to GitHub PR
     logger.info({ reviewId }, 'Posting review comments to GitHub...');
     await job.updateProgress(90);
 
@@ -134,7 +164,7 @@ Focus on code quality, performance, security, and maintainability.
         .where(eq(reviews.id, reviewId));
     }
 
-    // Step 7: Track analytics
+    // Step 8: Track analytics
     try {
       await analyticsService.trackReview(
         userId,

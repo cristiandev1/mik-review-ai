@@ -48,6 +48,7 @@ interface SyncedRepository {
   isPrivate: boolean;
   isEnabled: boolean;
   allowedUsernames: string[] | null;
+  excludedFilePatterns: string[] | null;
   defaultBranch: string;
   language: string | null;
   createdAt: string;
@@ -67,6 +68,7 @@ export default function RepositoriesPage() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [editingRepo, setEditingRepo] = useState<SyncedRepository | null>(null);
   const [allowedUsernamesInput, setAllowedUsernamesInput] = useState('');
+  const [excludedFilePatternsInput, setExcludedFilePatternsInput] = useState('');
   const [savingSettings, setSavingSettings] = useState(false);
 
   useEffect(() => {
@@ -214,6 +216,7 @@ export default function RepositoriesPage() {
   const openSettings = (repo: SyncedRepository) => {
     setEditingRepo(repo);
     setAllowedUsernamesInput(repo.allowedUsernames?.join('\n') || '');
+    setExcludedFilePatternsInput(repo.excludedFilePatterns?.join('\n') || '');
     setIsSettingsOpen(true);
   };
 
@@ -232,6 +235,12 @@ export default function RepositoriesPage() {
         // Remove @ if present
         .map(u => u.startsWith('@') ? u.substring(1) : u);
 
+      // Parse excluded file patterns: split by newline or comma, trim, and filter empty
+      const excludedPatterns = excludedFilePatternsInput
+        .split(/[\n,]+/)
+        .map(p => p.trim())
+        .filter(p => p.length > 0);
+
       const token = localStorage.getItem('token');
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/repositories/${editingRepo.id}`, {
         method: 'PATCH',
@@ -240,7 +249,8 @@ export default function RepositoriesPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          allowedUsernames: usernames
+          allowedUsernames: usernames,
+          excludedFilePatterns: excludedPatterns
         }),
       });
 
@@ -253,7 +263,7 @@ export default function RepositoriesPage() {
       // Update local state immediately for instant UI feedback
       setSyncedRepos(syncedRepos.map(repo =>
         repo.id === editingRepo.id
-          ? { ...repo, allowedUsernames: usernames }
+          ? { ...repo, allowedUsernames: usernames, excludedFilePatterns: excludedPatterns }
           : repo
       ));
 
@@ -506,7 +516,7 @@ export default function RepositoriesPage() {
                 Enter the GitHub usernames of developers authorized to receive AI reviews on their Pull Requests.
                 Leave empty to allow everyone.
               </p>
-              <Textarea 
+              <Textarea
                 placeholder="username1, username2, @username3..."
                 className="h-32"
                 value={allowedUsernamesInput}
@@ -515,6 +525,30 @@ export default function RepositoriesPage() {
               <p className="text-xs text-muted-foreground">
                 Separate usernames with commas or new lines.
               </p>
+            </div>
+
+            {/* Excluded File Patterns Section */}
+            <div className="space-y-2">
+              <Label htmlFor="excludedPatterns" className="text-sm font-medium">
+                Excluded File Patterns
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Files matching these patterns will be excluded from AI review. This helps save tokens on generated/build files.
+                Enter one pattern per line (e.g., .test, .mocks, .freezed, dist/)
+              </p>
+              <Textarea
+                id="excludedPatterns"
+                value={excludedFilePatternsInput}
+                onChange={(e) => setExcludedFilePatternsInput(e.target.value)}
+                placeholder=".test&#10;.spec&#10;.mocks&#10;.freezed&#10;.g.dart&#10;dist/&#10;build/"
+                rows={8}
+                className="font-mono text-sm"
+              />
+              {editingRepo?.excludedFilePatterns && editingRepo.excludedFilePatterns.length > 0 && (
+                <div className="text-xs text-muted-foreground">
+                  Currently excluding: {editingRepo.excludedFilePatterns.length} pattern(s)
+                </div>
+              )}
             </div>
           </div>
 

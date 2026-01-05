@@ -244,6 +244,10 @@ export class RepositoryService {
         updateData.allowedUsernames = data.allowedUsernames;
       }
 
+      if (data.excludedFilePatterns !== undefined) {
+        updateData.excludedFilePatterns = data.excludedFilePatterns;
+      }
+
       const [updated] = await db
         .update(repositories)
         .set(updateData)

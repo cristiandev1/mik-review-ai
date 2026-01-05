@@ -16,6 +16,7 @@ export const syncRepositorySchema = z.object({
 export const updateRepositorySchema = z.object({
   isEnabled: z.boolean().optional(),
   allowedUsernames: z.array(z.string()).optional(),
+  excludedFilePatterns: z.array(z.string()).optional(),
 });
 
 // Schema for query params
