@@ -1,7 +1,7 @@
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import { AuthService } from './auth.service.js';
 import { PasswordResetService } from './password-reset.service.js';
-import { signupSchema, loginSchema, forgotPasswordSchema, resetPasswordSchema } from './auth.schemas.js';
+import { signupSchema, loginSchema, forgotPasswordSchema, resetPasswordSchema, updateProfileSchema } from './auth.schemas.js';
 
 const authService = new AuthService();
 const passwordResetService = new PasswordResetService();
@@ -55,7 +55,7 @@ export class AuthController {
 
     if (!userId) {
       // This should ideally be handled by middleware, but extra check is fine
-      throw new Error('Unauthorized'); 
+      throw new Error('Unauthorized');
       // Or UnauthorizedError if we want to be strict, but middleware should catch it
     }
 
@@ -64,6 +64,30 @@ export class AuthController {
     return reply.code(200).send({
       success: true,
       data: user,
+    });
+  }
+
+  async updateProfile(request: FastifyRequest, reply: FastifyReply) {
+    const userId = (request as any).userId;
+    const input = updateProfileSchema.parse(request.body);
+
+    const user = await authService.updateProfile(userId, input);
+
+    return reply.code(200).send({
+      success: true,
+      data: user,
+      message: 'Profile updated successfully',
+    });
+  }
+
+  async disconnectGithub(request: FastifyRequest, reply: FastifyReply) {
+    const userId = (request as any).userId;
+
+    await authService.disconnectGithub(userId);
+
+    return reply.code(200).send({
+      success: true,
+      message: 'GitHub account disconnected successfully',
     });
   }
 }

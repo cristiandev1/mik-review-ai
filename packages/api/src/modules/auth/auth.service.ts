@@ -6,7 +6,7 @@ import jwt from 'jsonwebtoken';
 import { nanoid } from 'nanoid';
 import { env } from '../../config/env.js';
 import { VerificationService } from '../verification/verification.service.js';
-import type { SignupInput, LoginInput } from './auth.schemas.js';
+import type { SignupInput, LoginInput, UpdateProfileInput } from './auth.schemas.js';
 import { ConflictError, UnauthorizedError, NotFoundError } from '../../shared/errors/app-error.js';
 import { logger } from '../../shared/utils/logger.js';
 
@@ -128,6 +128,52 @@ export class AuthService {
     }
 
     return user;
+  }
+
+  async updateProfile(userId: string, input: UpdateProfileInput) {
+    const updateData: Record<string, unknown> = {
+      updatedAt: new Date(),
+    };
+
+    if (input.name !== undefined) {
+      updateData.name = input.name;
+    }
+
+    const [user] = await db
+      .update(users)
+      .set(updateData)
+      .where(eq(users.id, userId))
+      .returning({
+        id: users.id,
+        email: users.email,
+        name: users.name,
+        plan: users.plan,
+        emailVerified: users.emailVerified,
+        githubAccessToken: users.githubAccessToken,
+        createdAt: users.createdAt,
+      });
+
+    if (!user) {
+      throw new NotFoundError('User not found');
+    }
+
+    return user;
+  }
+
+  async disconnectGithub(userId: string) {
+    const [user] = await db
+      .update(users)
+      .set({
+        githubId: null,
+        githubAccessToken: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, userId))
+      .returning();
+
+    if (!user) {
+      throw new NotFoundError('User not found');
+    }
   }
 
   verifyToken(token: string): { userId: string } {

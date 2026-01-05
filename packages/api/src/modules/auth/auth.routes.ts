@@ -20,4 +20,12 @@ export async function authRoutes(app: FastifyInstance) {
   app.get('/me', {
     preHandler: [authMiddleware],
   }, controller.me.bind(controller));
+
+  app.put('/me', {
+    preHandler: [authMiddleware],
+  }, controller.updateProfile.bind(controller));
+
+  app.delete('/github', {
+    preHandler: [authMiddleware],
+  }, controller.disconnectGithub.bind(controller));
 }
