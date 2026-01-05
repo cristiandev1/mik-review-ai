@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import {
   Table,
@@ -12,6 +14,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 import { Icons } from "@/components/icons"
 
 interface GitHubRepository {
@@ -36,6 +47,7 @@ interface SyncedRepository {
   description: string | null;
   isPrivate: boolean;
   isEnabled: boolean;
+  allowedUsernames: string[] | null;
   defaultBranch: string;
   language: string | null;
   createdAt: string;
@@ -50,6 +62,12 @@ export default function RepositoriesPage() {
   const [showGithubRepos, setShowGithubRepos] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [error, setError] = useState('');
+
+  // Dialog state
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [editingRepo, setEditingRepo] = useState<SyncedRepository | null>(null);
+  const [allowedUsernamesInput, setAllowedUsernamesInput] = useState('');
+  const [savingSettings, setSavingSettings] = useState(false);
 
   useEffect(() => {
     fetchSyncedRepositories();
@@ -193,6 +211,54 @@ export default function RepositoriesPage() {
     }
   };
 
+  const openSettings = (repo: SyncedRepository) => {
+    setEditingRepo(repo);
+    setAllowedUsernamesInput(repo.allowedUsernames?.join('\n') || '');
+    setIsSettingsOpen(true);
+  };
+
+  const saveSettings = async () => {
+    if (!editingRepo) return;
+
+    setSavingSettings(true);
+    setError('');
+
+    try {
+      // Parse usernames: split by newline or comma, trim, and filter empty
+      const usernames = allowedUsernamesInput
+        .split(/[\n,]+/)
+        .map(u => u.trim())
+        .filter(u => u.length > 0)
+        // Remove @ if present
+        .map(u => u.startsWith('@') ? u.substring(1) : u);
+
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/repositories/${editingRepo.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          allowedUsernames: usernames 
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to update repository settings');
+      }
+
+      setIsSettingsOpen(false);
+      fetchSyncedRepositories();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setSavingSettings(false);
+    }
+  };
+
   const filteredGithubRepos = (githubRepos || []).filter(repo =>
     repo.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (repo.description && repo.description.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -312,10 +378,20 @@ export default function RepositoriesPage() {
                           <Button
                             variant="ghost"
                             size="sm"
+                            className="mr-2"
+                            onClick={() => openSettings(repo)}
+                          >
+                            <Icons.settings className="h-4 w-4" />
+                            <span className="sr-only">Settings</span>
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             className="text-destructive hover:text-destructive hover:bg-destructive/10"
                             onClick={() => deleteRepository(repo.id)}
                           >
                             <Icons.trash className="h-4 w-4" />
+                            <span className="sr-only">Delete</span>
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -404,6 +480,45 @@ export default function RepositoriesPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Settings Dialog */}
+      <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Repository Settings</DialogTitle>
+            <DialogDescription>
+              Configure settings for <span className="font-semibold">{editingRepo?.fullName}</span>.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Seat Management (Allowed Users)</Label>
+              <p className="text-xs text-muted-foreground">
+                Enter the GitHub usernames of developers authorized to receive AI reviews on their Pull Requests.
+                Leave empty to allow everyone.
+              </p>
+              <Textarea 
+                placeholder="username1, username2, @username3..."
+                className="h-32"
+                value={allowedUsernamesInput}
+                onChange={(e) => setAllowedUsernamesInput(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Separate usernames with commas or new lines.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsSettingsOpen(false)}>Cancel</Button>
+            <Button onClick={saveSettings} disabled={savingSettings}>
+              {savingSettings && <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />}
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
