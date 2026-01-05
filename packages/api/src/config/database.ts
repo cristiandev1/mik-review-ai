@@ -2,6 +2,9 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import { env } from './env.js';
 import { logger } from '../shared/utils/logger.js';
+import { migrate } from 'drizzle-orm/postgres-js/migrator';
+import path from 'path';
+import fs from 'fs';
 
 // Connection for queries
 const queryClient = postgres(env.DATABASE_URL, {
@@ -28,5 +31,41 @@ export async function testDatabaseConnection() {
   } catch (error) {
     logger.error(error, '❌ Database connection failed');
     return false;
+  }
+}
+
+// Auto-migrate on startup (fallback if preDeployCommand fails)
+export async function runMigrationsOnStartup() {
+  try {
+    logger.info('🔄 Checking for pending migrations...');
+
+    const drizzleDb = drizzle(migrationClient);
+
+    // Determine migrations folder path
+    let migrationsFolder = path.join(process.cwd(), 'dist', 'database', 'migrations');
+
+    if (!fs.existsSync(migrationsFolder)) {
+      migrationsFolder = path.join(process.cwd(), 'src', 'database', 'migrations');
+    }
+
+    if (!fs.existsSync(migrationsFolder)) {
+      if (fs.existsSync(path.join(process.cwd(), 'migrations'))) {
+        migrationsFolder = path.join(process.cwd(), 'migrations');
+      }
+    }
+
+    if (!fs.existsSync(migrationsFolder)) {
+      logger.warn('⚠️ Migrations folder not found, skipping auto-migration');
+      return;
+    }
+
+    await migrate(drizzleDb, {
+      migrationsFolder: migrationsFolder,
+    });
+
+    logger.info('✅ Migrations completed successfully');
+  } catch (error) {
+    logger.error(error, '⚠️ Auto-migration failed (this is not critical if migrations were already applied)');
+    // Don't throw - let the app continue if migrations are already applied
   }
 }
