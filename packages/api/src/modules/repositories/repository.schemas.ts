@@ -14,7 +14,8 @@ export const syncRepositorySchema = z.object({
 
 // Schema for updating repository status
 export const updateRepositorySchema = z.object({
-  isEnabled: z.boolean(),
+  isEnabled: z.boolean().optional(),
+  allowedUsernames: z.array(z.string()).optional(),
 });
 
 // Schema for query params

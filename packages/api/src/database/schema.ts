@@ -135,6 +135,7 @@ export const repositories = pgTable('repositories', {
   description: text('description'),
   isPrivate: boolean('is_private').default(false).notNull(),
   isEnabled: boolean('is_enabled').default(true).notNull(),
+  allowedUsernames: json('allowed_usernames').$type<string[]>(), // Whitelisted users for this repo
   githubWebhookId: integer('github_webhook_id'), // Webhook ID for auto-review
   defaultBranch: varchar('default_branch', { length: 100 }).default('main'),
   language: varchar('language', { length: 50 }),

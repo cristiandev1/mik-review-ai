@@ -38,6 +38,11 @@
 - **Pro Plan**: 500 reviews/mês ($9.99/mês)
 - **Business Plan**: 2000 reviews/mês ($29.99/mês)
 
+### Seat Management (Manual Assignment)
+- **Cobrança por Usuário Ativo**: Você só paga pelos desenvolvedores que criam Pull Requests.
+- **Whitelist Manual**: O administrador do repositório define manualmente (via Dashboard) quais usuários (`@github_username`) estão autorizados a receber reviews.
+- **Controle de Custos**: PRs de usuários fora da lista são ignorados, evitando consumo indevido de reviews do plano.
+
 ---
 
 ## 🏗️ Arquitetura do Sistema

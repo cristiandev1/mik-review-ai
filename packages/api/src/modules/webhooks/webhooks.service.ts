@@ -41,6 +41,7 @@ export class WebhooksService {
         id: repositories.id,
         userId: repositories.userId,
         isEnabled: repositories.isEnabled,
+        allowedUsernames: repositories.allowedUsernames,
       })
       .from(repositories)
       .where(eq(repositories.githubRepoId, githubRepoId));
@@ -56,6 +57,20 @@ export class WebhooksService {
     if (!repo) {
        logger.info({ githubRepoId }, 'Repository found but not enabled, skipping');
        return;
+    }
+
+    // Check Seat Management (Allowed Users)
+    const prAuthor = pull_request.user.login;
+    if (repo.allowedUsernames && repo.allowedUsernames.length > 0) {
+      const isAllowed = repo.allowedUsernames.includes(prAuthor);
+      if (!isAllowed) {
+        logger.info({ 
+          githubRepoId, 
+          prAuthor, 
+          allowed: repo.allowedUsernames 
+        }, 'PR Author is not in the allowed seats list. Skipping review.');
+        return;
+      }
     }
 
     // Get the user to get the token

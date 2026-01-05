@@ -232,12 +232,21 @@ export class RepositoryService {
       }
 
       // Update in DB
+      const updateData: any = {
+        updatedAt: new Date(),
+      };
+
+      if (data.isEnabled !== undefined) {
+        updateData.isEnabled = data.isEnabled;
+      }
+
+      if (data.allowedUsernames !== undefined) {
+        updateData.allowedUsernames = data.allowedUsernames;
+      }
+
       const [updated] = await db
         .update(repositories)
-        .set({
-          isEnabled: data.isEnabled,
-          updatedAt: new Date(),
-        })
+        .set(updateData)
         .where(eq(repositories.id, id))
         .returning();
 
