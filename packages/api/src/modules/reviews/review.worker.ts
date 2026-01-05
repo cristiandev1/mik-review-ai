@@ -26,7 +26,7 @@ export async function processReviewJob(
 
     // Initialize services
     const githubService = new GitHubService(githubToken);
-    const aiService = new AIService('deepseek');
+    const aiService = new AIService();
     const analyticsService = new AnalyticsService();
     const customRulesService = new CustomRulesService();
 
