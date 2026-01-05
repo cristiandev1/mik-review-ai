@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -8,6 +8,21 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Icons } from "@/components/icons"
+import { Check, ChevronsUpDown } from "lucide-react"
+import { cn } from "@/lib/utils"
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 
 const DEFAULT_RULE_TEMPLATE = `# Code Review Guidelines
 
@@ -27,15 +42,42 @@ Provide actionable feedback with:
 3. Suggested improvement
 `;
 
+interface Repository {
+  id: string;
+  fullName: string;
+}
+
 export default function NewCustomRulePage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [repositories, setRepositories] = useState<Repository[]>([]);
+  const [openCombobox, setOpenCombobox] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     repository: '',
     content: DEFAULT_RULE_TEMPLATE,
   });
+
+  useEffect(() => {
+    fetchRepositories();
+  }, []);
+
+  const fetchRepositories = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/repositories?limit=100`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setRepositories(data.data || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch repositories', err);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -127,14 +169,66 @@ export default function NewCustomRulePage() {
 
             <div className="grid gap-2">
               <Label htmlFor="repository">Repository (Optional)</Label>
-              <Input
-                id="repository"
-                value={formData.repository}
-                onChange={(e) => setFormData({ ...formData, repository: e.target.value })}
-                placeholder="e.g. owner/repo-name"
-              />
+              <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={openCombobox}
+                    className="w-full justify-between"
+                  >
+                    {formData.repository
+                      ? repositories.find((repo) => repo.fullName === formData.repository)?.fullName || formData.repository
+                      : "Select repository (or leave empty for global)..."}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[400px] p-0">
+                  <Command>
+                    <CommandInput placeholder="Search repository..." />
+                    <CommandList>
+                      <CommandEmpty>No repository found.</CommandEmpty>
+                      <CommandGroup>
+                        <CommandItem
+                          value="global"
+                          onSelect={() => {
+                            setFormData({ ...formData, repository: "" })
+                            setOpenCombobox(false)
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              formData.repository === "" ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          Global Rule (All Repositories)
+                        </CommandItem>
+                        {repositories.map((repo) => (
+                          <CommandItem
+                            key={repo.id}
+                            value={repo.fullName}
+                            onSelect={(currentValue) => {
+                              setFormData({ ...formData, repository: currentValue })
+                              setOpenCombobox(false)
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                formData.repository === repo.fullName ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            {repo.fullName}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
               <p className="text-sm text-muted-foreground">
-                Leave empty for a global rule, or specify a repository (format: owner/repo)
+                Select a synced repository to apply this rule only to that specific repo.
               </p>
             </div>
 
