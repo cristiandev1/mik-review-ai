@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Sidebar } from "@/components/sidebar"
+import { EmailVerificationBanner } from '@/components/email-verification-banner';
 
 export default function DashboardLayout({
   children,
@@ -41,8 +42,12 @@ export default function DashboardLayout({
   return (
     <div className="min-h-screen">
       <Sidebar />
-      <main className="lg:pl-64 min-h-screen">
-        <div className="container py-6">
+      <main className="lg:pl-64 min-h-screen flex flex-col">
+        <EmailVerificationBanner
+          emailVerified={user?.emailVerified}
+          email={user?.email}
+        />
+        <div className="container py-6 flex-1">
            {children}
         </div>
       </main>
