@@ -1025,7 +1025,7 @@ const revokeKey = async (id: string) => {
 ```
 
 **Key Display:**
-```tsx
+```typescript
 const displayKey = (key: string) => {
   if (key.length > 20) {
     return `${key.slice(0, 10)}...${key.slice(-6)}`
@@ -1691,6 +1691,7 @@ CREATE TABLE users (
 
 ---
 
+
 ### Tabela: `apiKeys`
 
 ```sql
@@ -1712,6 +1713,7 @@ CREATE TABLE apiKeys (
 - `teamId`
 
 ---
+
 
 ### Tabela: `reviews`
 
@@ -1752,6 +1754,7 @@ CREATE TABLE reviews (
 
 ---
 
+
 ### Tabela: `usageAnalytics`
 
 ```sql
@@ -1772,6 +1775,7 @@ CREATE TABLE usageAnalytics (
 - `(userId, date)` (unique composite)
 
 ---
+
 
 ### Tabela: `repositories` ✅ IMPLEMENTADO
 
@@ -1806,6 +1810,7 @@ CREATE TABLE repositories (
 
 ---
 
+
 ### Tabela: `teams`
 
 ```sql
@@ -1825,6 +1830,7 @@ CREATE TABLE teams (
 - `stripeCustomerId`
 
 ---
+
 
 ### Tabela: `teamMembers`
 
@@ -1846,6 +1852,7 @@ CREATE TABLE teamMembers (
 
 ---
 
+
 ### Tabela: `customRules`
 
 ```sql
@@ -1866,6 +1873,7 @@ CREATE TABLE customRules (
 - `teamId`
 
 ---
+
 
 ### Tabela: `subscriptions`
 
@@ -1943,6 +1951,7 @@ GLOBAL_RATE_LIMIT=100 # requests per minute per IP
 
 ---
 
+
 ### Frontend (packages/dashboard/.env.local)
 
 ```bash
@@ -1965,6 +1974,7 @@ NEXT_PUBLIC_GA_ID=G-XXXXXXXXXX
 ```
 
 ---
+
 
 ### GitHub Action (packages/action/.env - não usar, só secrets)
 
@@ -2108,3 +2118,584 @@ GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Auto-provido
 **Última atualização:** 2026-01-01
 **Versão:** 1.0
 **Autor:** Cristian Castro
+
+---
+
+## 💰 Fase 4: Monetização e Ciclo de Vida do Usuário (ATUALIZADO)
+
+**Modelo de Negócio Revisado:** Estrutura de planos baseada em consumo de PRs/Tokens com três tiers bem definidos.
+
+---
+
+### 4.1 Estrutura de Planos e Cobrança
+
+#### Plano Free (Trial)
+- **Limite:** 3 PRs grátis OU 300.000 tokens (o que for consumido primeiro)
+- **Período:** Apenas UMA VEZ (primeira vez que o usuário usa o produto)
+- **Depois:** Usuário é forçado a escolher entre Hobby ou Pro
+- **Use Case:** Experimentar o produto, testar integrações
+- **Limite Mensal:** N/A (Trial é one-time)
+- **Preço:** Grátis
+
+#### Plano Hobby
+- **Preço:** $5/mês USD
+- **Limite de PRs:** 10 PRs/mês por usuário-seat no repositório escolhido
+- **Limite de Tokens:** Ilimitado (dentro dos 10 PRs)
+- **Assentos:** $5/mês por cada desenvolvedor ativo no repositório
+- **Use Case:** Pequenos times, freelancers, projetos pessoais
+- **Upgrade Automático:** Sim, se atingir limite de PRs
+- **Rastreamento:** Por usuário explícito OU por usuário que abre PR
+
+#### Plano Pro
+- **Preço:** $15/mês USD
+- **Limite de PRs:** 100 PRs/mês por usuário-seat no repositório escolhido
+- **Limite de Tokens:** Ilimitado (dentro dos 100 PRs)
+- **Assentos:** $15/mês por cada desenvolvedor ativo no repositório
+- **Use Case:** Médios times, projetos em produção
+- **Upgrade Automático:** Sim, se atingir limite de PRs (vai para plan acima ou prepaid)
+- **Rastreamento:** Por usuário explícito OU por usuário que abre PR
+
+#### Lógica de Assentos (PRÉ-PAGO - Modelo Recomendado)
+
+**Conceito: Seat-Based com Prepay + Auto-Activation**
+
+O owner **compra assentos adiantadamente** (pré-pagos), não paga depois baseado em quem usou.
+
+- **Plano Hobby**: $5/mês = 1 seat (o owner)
+  - Pode comprar mais seats: +$5/mês por seat adicional
+  - Exemplo: 3 devs = $15/mês ($5 base + 2 x $5 extras)
+
+- **Plano Pro**: $15/mês = 1 seat (o owner)
+  - Pode comprar mais seats: +$15/mês por seat adicional
+  - Exemplo: 3 devs = $45/mês ($15 base + 2 x $15 extras)
+
+**Dois Modos de Repositório:**
+
+1. **Whitelist Mode (Strict - Recomendado para times fechados)**
+   - Owner define manualmente quais devs têm acesso via whitelist GitHub
+   - Cobrança: Pré-paga quando owner adiciona dev à whitelist
+   - Exemplo: Owner no Hobby, adiciona 2 devs → Cobra $15/mês total (3 x $5)
+   - Se dev não autorizado tentar PR: Sistema bloqueia review com mensagem
+
+2. **Auto-Add Mode (Flexible - Recomendado para open source/times dinâmicos)**
+   - Repositório aberto para qualquer dev fazer PR
+   - Sistema verifica: "Tenho seats disponíveis?"
+     - **SIM**: Automaticamente adiciona dev ao seat pool (pré-pago) e processa review
+     - **NÃO**: Bloqueia review e avisa "Repositório sem seats disponíveis"
+   - Owner vê no dashboard: "Devs usando seus seats: @alice, @bob, @charlie" + "X seats livres"
+   - Owner pode comprar +1 seat por $5/mês (Hobby) ou $15/mês (Pro) on-demand
+
+**Benefícios:**
+- ✅ Owner sempre sabe quanto vai pagar (pré-pago)
+- ✅ Você nunca perde receita (reviews só com seats disponíveis)
+- ✅ Dev novo consegue feedback (se há seats)
+- ✅ Owner controla crescimento de custo (compra seats quando precisa)
+
+---
+
+### 4.2 Ciclo de Vida do Usuário
+
+#### Fase 1: Signup → Free Trial
+```
+User Signs Up
+    ↓
+Free Trial Activated (3 PRs OU 300k tokens)
+    ↓
+User integrates GitHub, creates first review
+    ↓
+Contador começa: 1 PR de 3 usado, tokens consumidos...
+```
+
+#### Fase 2: Free Trial Expirado
+```
+User atinge 3 PRs OU 300k tokens
+    ↓
+Sistema bloqueia: "Trial expirado"
+    ↓
+Email enviado: "Escolha um plano: Hobby ($5/mo) ou Pro ($15/mo)"
+    ↓
+Dashboard mostra banner: "Upgrade Required"
+    ↓
+PRs são rejeitados com: "Trial expired. Please select a plan."
+```
+
+#### Fase 3: Plano Ativo
+```
+User escolhe Hobby ou Pro
+    ↓
+Stripe Checkout (pago adiantado, toda primeira do mês)
+    ↓
+Subscription criada com 1 seat (o owner)
+    ↓
+User sincroniza repositório e escolhe modo:
+  - Whitelist: Adiciona devs manualmente (cada dev = +$5 ou +$15)
+  - Auto-Add: Qualquer dev pode abrir PR (enquanto houver seats disponíveis)
+    ↓
+User volta a receber reviews normalmente
+    ↓
+Se atingir limite de seats:
+  - Aviso no Dashboard: "Sem seats disponíveis"
+  - Dev tentando fazer PR recebe: "Repository has no available seats"
+  - Owner vê opção: "Comprar +1 seat"
+```
+
+#### Fase 4: Gerenciamento de Seats
+```
+Owner no Dashboard/Billing vê:
+  ├─ Seats Ativos: 3/3 (100% utilizado)
+  ├─ Devs Utilizando:
+  │  ├─ @owner (seat do plano)
+  │  ├─ @alice (seat comprado)
+  │  └─ @bob (seat comprado)
+  ├─ Opção: "Comprar +1 seat" → +$5/mês (Hobby)
+  └─ Opção: "Remover @alice" → Libera seat, reduz em -$5/mês
+```
+
+#### Fase 5: Renovação Mensal
+```
+1º dia do próximo mês
+    ↓
+Stripe cobra automaticamente baseado em seats ativos
+  Exemplo: Owner tem 3 devs no Hobby → $15/mês
+    ↓
+Se owner removeu um dev:
+  - Crédito proporcional (se pagou antecipado)
+  - Reduz próxima cobrança
+    ↓
+Novo ciclo começa
+```
+
+---
+
+### 4.3 Mudanças no Banco de Dados
+
+**Tabela `users` (Alterações):**
+```sql
+ALTER TABLE users ADD COLUMN free_trial_used BOOLEAN DEFAULT FALSE;
+ALTER TABLE users ADD COLUMN free_trial_used_at TIMESTAMP;
+ALTER TABLE users ADD COLUMN free_trial_prs_used INT DEFAULT 0;
+ALTER TABLE users ADD COLUMN free_trial_tokens_used INT DEFAULT 0;
+ALTER TABLE users ADD COLUMN plan VARCHAR(50) DEFAULT 'none'; -- none, hobby, pro
+ALTER TABLE users ADD COLUMN plan_started_at TIMESTAMP;
+ALTER TABLE users ADD COLUMN plan_reset_date DATE; -- Próxima data de reset
+```
+
+**Tabela `repositories` (Alterações):**
+```sql
+ALTER TABLE repositories ADD COLUMN seat_management_mode VARCHAR(50) DEFAULT 'auto-add';
+-- 'whitelist' = só devs na lista têm acesso
+-- 'auto-add' = qualquer dev pode fazer PR enquanto houver seats
+
+ALTER TABLE repositories ADD COLUMN total_seats_allocated INT DEFAULT 1; -- Total de seats comprados
+ALTER TABLE repositories ADD COLUMN seats_available INT DEFAULT 1; -- Seats não utilizados
+```
+
+**Nova Tabela `repository_seats` (Gerenciamento de assentos por repositório):**
+```sql
+CREATE TABLE repository_seats (
+  id SERIAL PRIMARY KEY,
+  repository_id VARCHAR(36) NOT NULL REFERENCES repositories(id) ON DELETE CASCADE,
+  user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  github_username VARCHAR(255), -- Dev que usa este seat
+  seat_type VARCHAR(50) DEFAULT 'additional', -- 'owner' ou 'additional'
+  assigned_at TIMESTAMP DEFAULT NOW(),
+  removed_at TIMESTAMP, -- NULL se ativo, preenchido se removido
+  monthly_cost DECIMAL(10, 2), -- $5 ou $15 dependendo do plan
+  created_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE(repository_id, github_username)
+);
+```
+
+**Nova Tabela `usage_tracking` (Rastreamento de consumo - PRs/tokens por dev):**
+```sql
+CREATE TABLE usage_tracking (
+  id SERIAL PRIMARY KEY,
+  user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  repository_id VARCHAR(36) NOT NULL REFERENCES repositories(id) ON DELETE CASCADE,
+  github_author VARCHAR(255) NOT NULL, -- Dev que fez o PR
+  billing_period_month DATE NOT NULL, -- First day of month (2025-01-01)
+  prs_processed INT DEFAULT 0,
+  tokens_used INT DEFAULT 0,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE(user_id, repository_id, github_author, billing_period_month)
+);
+```
+
+**Alteração em `subscriptions`:**
+```sql
+ALTER TABLE subscriptions ADD COLUMN billing_mode VARCHAR(50) DEFAULT 'fixed'; -- fixed, metered
+ALTER TABLE subscriptions ADD COLUMN stripe_subscription_item_id VARCHAR(255); -- Para metered billing
+ALTER TABLE subscriptions ADD COLUMN current_seats INT DEFAULT 1;
+ALTER TABLE subscriptions ADD COLUMN last_invoice_at TIMESTAMP;
+```
+
+---
+
+### 4.4 Fluxo de Verificação no Backend (PRÉ-PAGO)
+
+**Middleware: `billing.middleware.ts`**
+```typescript
+async function checkBillingStatus(req: FastifyRequest) {
+  const user = req.user;
+  const { repository, prAuthor } = req.body;
+
+  // 1. Verificar se trial foi usado
+  if (!user.free_trial_used) {
+    // Usuário no trial - verificar limites
+    if (user.free_trial_prs_used >= 3 || user.free_trial_tokens_used >= 300000) {
+      throw new Error('Trial expired. Please select a plan.');
+    }
+    // OK, processar review
+    return;
+  }
+
+  // 2. Trial foi usado - verificar plan ativo
+  if (user.plan === 'none') {
+    throw new Error('No active plan. Please upgrade.');
+  }
+
+  // 3. Verificar se há subscription ativa
+  const subscription = await db.query.subscriptions.findFirst({
+    where: eq(subscriptions.userId, user.id),
+  });
+
+  if (!subscription || subscription.status !== 'active') {
+    throw new Error('Subscription inactive. Payment failed?');
+  }
+
+  // 4. *** NOVO: Verificar se dev tem seat disponível ***
+  const repo = await db.query.repositories.findFirst({
+    where: eq(repositories.id, repository.id),
+  });
+
+  if (repo.seat_management_mode === 'whitelist') {
+    // Modo whitelist: Só devs na lista podem fazer PR
+    const hasSeat = await db.query.repository_seats.findFirst({
+      where: and(
+        eq(repository_seats.repository_id, repo.id),
+        eq(repository_seats.github_username, prAuthor),
+        isNull(repository_seats.removed_at)
+      )
+    });
+
+    if (!hasSeat) {
+      throw new Error(`@${prAuthor} is not authorized for reviews on this repository.`);
+    }
+  } else {
+    // Modo auto-add: Verificar se há seats disponíveis
+    if (repo.seats_available <= 0) {
+      throw new Error(`Repository has no available seats. Owner needs to purchase more seats.`);
+    }
+
+    // Se dev é novo, precisa ativar um seat
+    const existingSeat = await db.query.repository_seats.findFirst({
+      where: and(
+        eq(repository_seats.repository_id, repo.id),
+        eq(repository_seats.github_username, prAuthor),
+        isNull(repository_seats.removed_at)
+      )
+    });
+
+    if (!existingSeat) {
+      // Novo dev! Precisamos ativar um seat pra ele
+      // IMPORTANTE: Owner JÁ PAGOU por este seat, só estamos atribuindo
+      await db.insert(repository_seats).values({
+        repository_id: repo.id,
+        user_id: user.id,
+        github_username: prAuthor,
+        seat_type: 'additional',
+        monthly_cost: user.plan === 'hobby' ? 5 : 15,
+      });
+
+      // Reduzir seats_available
+      await db.update(repositories)
+        .set({ seats_available: repo.seats_available - 1 })
+        .where(eq(repositories.id, repo.id));
+
+      // Owner recebe notificação
+      await sendEmail({
+        to: user.email,
+        template: 'new-developer-activated',
+        data: {
+          repository: repo.full_name,
+          developer: prAuthor,
+          costPerMonth: user.plan === 'hobby' ? 5 : 15,
+        }
+      });
+    }
+  }
+
+  // OK, processar review
+}
+```
+
+---
+
+### 4.5 Rastreamento de Consumo (PRs/Tokens por Dev)
+
+**No `review.service.ts`, ao criar e completar review:**
+```typescript
+async function createReview(data: CreateReviewInput) {
+  const { repository, prNumber, prAuthor, tokensUsed } = data;
+
+  // ... validações normais (já passou por billing.middleware) ...
+
+  const monthStart = getMonthStart(new Date());
+
+  // Rastrear consumo deste dev neste mês
+  await db.insert(usage_tracking).values({
+    user_id: repository.user_id,
+    repository_id: repository.id,
+    github_author: prAuthor,
+    billing_period_month: monthStart,
+    prs_processed: 1,
+    tokens_used: tokensUsed,
+  }).onConflictDoUpdate({
+    target: [
+      usage_tracking.user_id,
+      usage_tracking.repository_id,
+      usage_tracking.github_author,
+      usage_tracking.billing_period_month,
+    ],
+    set: {
+      prs_processed: sql`${usage_tracking.prs_processed} + 1`,
+      tokens_used: sql`${usage_tracking.tokens_used} + ${tokensUsed}`,
+      updated_at: new Date(),
+    }
+  });
+
+  // Criar review normalmente
+  const review = await db.insert(reviews).values({
+    userId: repository.user_id,
+    repository: repository.full_name,
+    prNumber: prNumber,
+    status: 'pending',
+    createdAt: new Date(),
+  });
+
+  // Enqueue job (resto do fluxo normal)
+  return review;
+}
+```
+
+**Dashboard Analytics: Consumo por Dev**
+- Owner vê tabela com devs e quanto cada um consumiu:
+  ```
+  Desenvolvedor | PRs | Tokens | Custo/Mês
+  ---|---|---|---
+  @alice | 15 | 450k | $5 (Hobby)
+  @bob | 8 | 240k | $5 (Hobby)
+  @charlie | 3 | 90k | $5 (Hobby)
+  ```
+
+---
+
+### 4.6 Dashboard - Billing Page (PRÉ-PAGO)
+
+**Nova página: `/dashboard/billing`**
+
+#### Card de Status do Plano Atual
+```
+┌─────────────────────────────────────────┐
+│ Seu Plano Atual                         │
+├─────────────────────────────────────────┤
+│ Hobby - $5/mês (base plan)              │
+│ Assentos Adicionais: 2 x $5 = $10/mês   │
+│ ─────────────────────────────────────   │
+│ TOTAL MENSAL: $15/mês                   │
+│                                         │
+│ Próxima Cobrança: 01 de fevereiro       │
+│ Status: ✓ Ativo                         │
+└─────────────────────────────────────────┘
+```
+
+#### Gerenciamento de Assentos (por Repositório)
+```
+┌─────────────────────────────────────────┐
+│ meu-repo (Hobby)                        │
+├─────────────────────────────────────────┤
+│ Modo: Auto-Add                          │
+│ Assentos: 3/3 (100% utilizado)          │
+│                                         │
+│ Desenvolvedor | PRs | Custo/Mês        │
+│ ──────────────┼─────┼──────────         │
+│ @seu-usuario  | 12  | (incluído)        │
+│ @alice        | 15  | $5                │
+│ @bob          | 8   | $5                │
+│                                         │
+│ [ Comprar +1 Seat ] ($5/mês)           │
+│ [ Remover Dev ]                         │
+│ [ Trocar para Whitelist Mode ]          │
+└─────────────────────────────────────────┘
+
+┌─────────────────────────────────────────┐
+│ outro-repo (Pro)                        │
+├─────────────────────────────────────────┤
+│ Modo: Whitelist                         │
+│ Assentos: 2/5 (40% utilizado)           │
+│                                         │
+│ Desenvolvedor | PRs | Custo/Mês        │
+│ ──────────────┼─────┼──────────         │
+│ @seu-usuario  | 34  | (incluído)        │
+│ @charlie      | 22  | $15               │
+│ [ + adicionar dev ]                     │
+│                                         │
+│ [ Comprar +3 Seats ] ($45/mês)         │
+│ [ Remover Dev ]                         │
+└─────────────────────────────────────────┘
+```
+
+#### Alertas de Assentos
+```
+Se Assentos Cheios:
+┌─────────────────────────────────────┐
+│ ⚠️  Assentos Cheios                   │
+├─────────────────────────────────────┤
+│ meu-repo: @newdev tentou fazer PR   │
+│ mas repositório está com 3/3 assentos│
+│                                     │
+│ Opções:                             │
+│ 1. Comprar +1 seat ($5/mês)         │
+│ 2. Remover um dev existente         │
+│ 3. Trocar para modo Whitelist       │
+│                                     │
+│ [ Comprar +1 Seat ]                 │
+└─────────────────────────────────────┘
+```
+
+#### Histórico de Faturas & Cobrança
+```
+┌──────────────────────────────────────────┐
+│ Faturas & Histórico de Cobrança          │
+├──────────────────────────────────────────┤
+│ 01/02/2025  -$15.00  ✓ Pago              │
+│   ├─ Hobby base plan:        $5.00       │
+│   ├─ Assento @alice (Hobby): $5.00       │
+│   └─ Assento @bob (Hobby):   $5.00       │
+│                                          │
+│ 01/01/2025  -$5.00   ✓ Pago              │
+│   └─ Hobby base plan:        $5.00       │
+│                                          │
+│ 01/12/2024  -$0.00   ✓ Trial             │
+│   └─ Free trial (3 PRs)                  │
+│                                          │
+│ [ Download Notas Fiscais ]               │
+│ [ Editar Método de Pagamento ]           │
+│ [ Ver Fatura Detalhada ]                 │
+└──────────────────────────────────────────┘
+```
+
+#### Trial Warning Banner (se aplicável)
+```
+⚠️  Seu trial de 3 PRs acaba em 2 PRs!
+Escolha um plano (Hobby $5 ou Pro $15) para continuar.
+[ Escolher Plano ]
+```
+
+---
+
+### 4.7 Alerts & Notifications (PRÉ-PAGO)
+
+#### Email Alerts
+| Evento | Gatilho | Ação |
+|--------|---------|------|
+| **Trial Expiring Soon** | 1 dia antes de atingir 3 PRs | Email: "Choose a plan (Hobby $5 or Pro $15)" |
+| **Trial Expired** | Atingiu 3 PRs ou 300k tokens | Email: "Trial ended" + Dashboard banner bloqueando |
+| **New Developer Activated** | Dev novo faz PR em Auto-Add mode | Email: "@alice agora está usando um seat (custo: $5/mês)" |
+| **Assentos Cheios** | Dev novo tenta PR mas 0 seats | Bloqueia PR + Email: "Compre +1 seat para continuar" |
+| **Payment Failed** | Falha na cobrança automática | Email: "Payment failed" + Bloqueia reviews até resolver |
+| **Plan Upgrade/Change** | User muda de plan | Email: "Seu plano mudou. Nova cobrança: $..." |
+| **Seat Removed** | Owner remove um dev | Email: "@alice removido + Crédito de $X próximo mês" |
+
+#### Dashboard Banners
+```
+Status               | Cor   | Mensagem
+---------------------|-------|----------
+Trial                | Blue  | "Trial: 2 PRs restantes. Escolha um plano."
+Assentos Disponíveis | Green | "Você tem 2 assentos vazios disponíveis"
+Assentos Cheios      | Red   | "⚠️ Assentos cheios! Novo PR bloqueado. Compre +1 seat?"
+Payment Failed       | Red   | "❌ Pagamento falhou. Reviews bloqueados até resolver."
+Success              | Green | "✓ +1 seat comprado! @newdev pode fazer reviews."
+```
+
+---
+
+### 4.8 Implementation Steps (Prioridade)
+
+#### Phase 4.1: Backend Core (🔴 CRÍTICO)
+- [ ] Criar tabelas `usage_tracking`, `monthly_developers` (migrations)
+- [ ] Atualizar schema de `users` e `repositories`
+- [ ] Implementar `billing.middleware.ts` com verificação de plano
+- [ ] Implementar `monthly_developers` tracking (implicit mode)
+- [ ] Criar endpoints:
+  - `GET /billing/plan` - Plano atual
+  - `GET /billing/usage` - Uso do mês
+  - `GET /billing/repositories` - Consumo por repo
+  - `POST /billing/upgrade` - Iniciar Stripe checkout
+  - `POST /billing/cancel` - Cancelar subscription
+- [ ] Integrar Stripe Metered Billing (implicit mode)
+- [ ] Webhook: `POST /webhooks/stripe` - Handle payment events
+
+#### Phase 4.2: Frontend Core (🔴 CRÍTICO)
+- [ ] Criar página `/dashboard/billing`
+- [ ] Componentes:
+  - `<PlanStatusCard />` - Status do plano
+  - `<UsageProgressBar />` - Barra de uso mensal
+  - `<PlanUpgradeModal />` - Seleção de plano + Checkout
+  - `<InvoiceHistory />` - Histórico de faturas
+  - `<RepositoryBreakdown />` - Consumo por repo
+- [ ] Integrar Stripe Checkout (redirecionamento)
+- [ ] Toasts de sucesso/erro
+
+#### Phase 4.3: Email & Notifications (🟡 IMPORTANTE)
+- [ ] Criar email templates:
+  - Trial expiring
+  - Trial expired
+  - Plan upgraded
+  - Payment failed
+- [ ] Scheduler para enviar emails automáticos
+
+#### Phase 4.4: Stripe Setup (🟡 IMPORTANTE)
+- [ ] Criar produtos no Stripe (Hobby, Pro)
+- [ ] Configurar webhooks (payment_intent, subscription events)
+- [ ] Testar checkout flow
+- [ ] Testar metered billing (implicit mode)
+
+#### Phase 4.5: Polish & Testing (🟢 FINAL)
+- [ ] Testes unitários: Billing logic, middleware
+- [ ] Testes E2E: Full checkout flow
+- [ ] Testes de edge cases (payment failed, trial edge)
+- [ ] Documentar pricing na landing page
+
+---
+
+### 4.9 FAQ para Usuários (PRÉ-PAGO)
+
+**P: Como funciona o modelo de assentos?**
+R: Você compra assentos adiantadamente. Cada assento permite que 1 desenvolvedor receba reviews automaticamente:
+- **Plano Hobby:** $5/mês/assento (1 assento base incluído)
+- **Plano Pro:** $15/mês/assento (1 assento base incluído)
+Você já paga no início do mês, não paga depois baseado em uso.
+
+**P: Qual a diferença entre Whitelist Mode e Auto-Add Mode?**
+R:
+- **Whitelist:** Você adiciona manualmente quais devs têm acesso. Quando adiciona, já é cobrado.
+- **Auto-Add:** Qualquer dev pode fazer PR (enquanto houver assentos vazios). Automaticamente ativado e cobrado.
+
+**P: O que acontece se um dev novo tenta fazer PR e não há assentos?**
+R: O sistema bloqueia o PR com mensagem: "Repository has no available seats". Você recebe um email oferecendo comprar +1 seat por $5/mês (Hobby) ou $15/mês (Pro).
+
+**P: Posso remover um dev e parar de pagar?**
+R: Sim! Vá em Billing → Seu Repositório → Clique "Remover @dev". Você recebe um crédito proporcional na próxima cobrança e economiza $5 (Hobby) ou $15 (Pro) por mês.
+
+**P: O que acontece se meu pagamento falhar?**
+R: Os reviews ficam bloqueados até você resolver o pagamento. Você receberá um email e verá um banner vermelho no dashboard.
+
+**P: Posso fazer downgrade de Pro para Hobby?**
+R: Sim! Você paga a diferença proporcional. Exemplo: Se mudou em 15/01, paga a diferença de $10 para o mês. A partir de 01/02, a nova cobrança será menor.
+
+**P: Há teste gratuito?**
+R: Sim! Todos os usuários ganham 3 PRs grátis OU 300.000 tokens (o que consumir primeiro). Depois é necessário escolher um plano (Hobby $5 ou Pro $15). Teste sem cartão de crédito!
+
+```
