@@ -49,6 +49,30 @@ export class ConflictError extends AppError {
   }
 }
 
+export class BillingError extends AppError {
+  constructor(message: string) {
+    super(message, 402, 'BILLING_ERROR');
+  }
+}
+
+export class TrialExpiredError extends AppError {
+  constructor(message = 'Trial expired. Please upgrade to a paid plan.') {
+    super(message, 403, 'TRIAL_EXPIRED');
+  }
+}
+
+export class NoSeatsAvailableError extends AppError {
+  constructor(message = 'No seats available. Please purchase more seats.') {
+    super(message, 403, 'NO_SEATS_AVAILABLE');
+  }
+}
+
+export class SubscriptionRequiredError extends AppError {
+  constructor(message = 'Active subscription required.') {
+    super(message, 403, 'SUBSCRIPTION_REQUIRED');
+  }
+}
+
 export class BadRequestError extends AppError {
   constructor(message = 'Bad request') {
     super(message, 400, 'BAD_REQUEST');

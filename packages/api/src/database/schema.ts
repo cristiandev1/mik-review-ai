@@ -1,4 +1,4 @@
-import { pgTable, varchar, timestamp, integer, boolean, json, text } from 'drizzle-orm/pg-core';
+import { pgTable, varchar, timestamp, integer, boolean, json, text, jsonb } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
 // Users Table
@@ -13,6 +13,12 @@ export const users = pgTable('users', {
   avatarUrl: varchar('avatar_url', { length: 500 }),
   emailVerified: boolean('email_verified').default(false).notNull(),
   stripeCustomerId: varchar('stripe_customer_id', { length: 100 }),
+  trialPrsUsed: integer('trial_prs_used').default(0).notNull(),
+  trialTokensUsed: integer('trial_tokens_used').default(0).notNull(),
+  trialExpired: boolean('trial_expired').default(false).notNull(),
+  trialExpiresAt: timestamp('trial_expires_at'),
+  requiresPayment: boolean('requires_payment').default(false).notNull(),
+  currentPlan: varchar('current_plan', { length: 20 }).default('trial').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -103,6 +109,10 @@ export const subscriptions = pgTable('subscriptions', {
   currentPeriodStart: timestamp('current_period_start'),
   currentPeriodEnd: timestamp('current_period_end'),
   canceledAt: timestamp('canceled_at'),
+  seatsPurchased: integer('seats_purchased').default(1).notNull(),
+  seatsUsed: integer('seats_used').default(0).notNull(),
+  meteredItemId: varchar('metered_item_id', { length: 255 }),
+  billingCycleAnchor: timestamp('billing_cycle_anchor'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
@@ -140,6 +150,32 @@ export const repositories = pgTable('repositories', {
   githubWebhookId: integer('github_webhook_id'), // Webhook ID for auto-review
   defaultBranch: varchar('default_branch', { length: 100 }).default('main'),
   language: varchar('language', { length: 50 }),
+  seatMode: varchar('seat_mode', { length: 20 }).default('auto-add').notNull(),
+  maxSeats: integer('max_seats').default(1).notNull(),
+  whitelistedDevelopers: jsonb('whitelisted_developers').$type<string[]>().notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Repository Seats Table
+export const repositorySeats = pgTable('repository_seats', {
+  id: varchar('id', { length: 36 }).primaryKey(),
+  repositoryId: varchar('repository_id', { length: 36 }).references(() => repositories.id, { onDelete: 'cascade' }).notNull(),
+  developerGithubUsername: varchar('developer_github_username', { length: 255 }).notNull(),
+  assignedAt: timestamp('assigned_at').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  billingMonth: varchar('billing_month', { length: 7 }).notNull(),
+});
+
+// Usage Tracking Table
+export const usageTracking = pgTable('usage_tracking', {
+  id: varchar('id', { length: 36 }).primaryKey(),
+  userId: varchar('user_id', { length: 36 }).references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  repositoryId: varchar('repository_id', { length: 36 }).references(() => repositories.id, { onDelete: 'cascade' }).notNull(),
+  developerGithubUsername: varchar('developer_github_username', { length: 255 }).notNull(),
+  prsProcessed: integer('prs_processed').default(0).notNull(),
+  tokensConsumed: integer('tokens_consumed').default(0).notNull(),
+  billingMonth: varchar('billing_month', { length: 7 }).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -193,9 +229,29 @@ export const teamMembersRelations = relations(teamMembers, ({ one }) => ({
   }),
 }));
 
-export const repositoriesRelations = relations(repositories, ({ one }) => ({
+export const repositoriesRelations = relations(repositories, ({ one, many }) => ({
   user: one(users, {
     fields: [repositories.userId],
     references: [users.id],
+  }),
+  seats: many(repositorySeats),
+  usageTracking: many(usageTracking),
+}));
+
+export const repositorySeatsRelations = relations(repositorySeats, ({ one }) => ({
+  repository: one(repositories, {
+    fields: [repositorySeats.repositoryId],
+    references: [repositories.id],
+  }),
+}));
+
+export const usageTrackingRelations = relations(usageTracking, ({ one }) => ({
+  user: one(users, {
+    fields: [usageTracking.userId],
+    references: [users.id],
+  }),
+  repository: one(repositories, {
+    fields: [usageTracking.repositoryId],
+    references: [repositories.id],
   }),
 }));

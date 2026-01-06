@@ -31,7 +31,10 @@ const envSchema = z.object({
 
   // Stripe (para billing)
   STRIPE_SECRET_KEY: z.string().optional(),
+  STRIPE_PUBLISHABLE_KEY: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
+  STRIPE_HOBBY_PRICE_ID: z.string().optional(),
+  STRIPE_PRO_PRICE_ID: z.string().optional(),
 
   // Email Configuration (Nodemailer)
   EMAIL_HOST: z.string().default('smtp.resend.com'),

@@ -81,6 +81,7 @@ export class RepositoryService {
             isEnabled: isEnabled,
             defaultBranch: data.defaultBranch,
             language: data.language,
+            whitelistedDevelopers: [],
           });
 
         logger.info({ repositoryId: repoId }, 'Repository synced (created)');
