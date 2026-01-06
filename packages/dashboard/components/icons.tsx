@@ -1,4 +1,4 @@
-import { Loader2, GitBranch, Github, LayoutDashboard, Settings, Key, BarChart3, LogOut, User, Plus, Pencil, Trash2, Globe, Users, Check } from "lucide-react"
+import { Loader2, GitBranch, Github, LayoutDashboard, Settings, Key, BarChart3, LogOut, User, Plus, Pencil, Trash2, Globe, Users, Check, CreditCard } from "lucide-react"
 
 export const Icons = {
   spinner: Loader2,
@@ -16,6 +16,7 @@ export const Icons = {
   trash: Trash2,
   globe: Globe,
   check: Check,
+  billing: CreditCard,
   logo: ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
     <svg
       xmlns="http://www.w3.org/2000/svg"

@@ -24,6 +24,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Icons } from "@/components/icons"
+import { SeatManagement } from '@/components/billing/seat-management';
 
 interface GitHubRepository {
   githubRepoId: number;
@@ -53,6 +54,8 @@ interface SyncedRepository {
   language: string | null;
   createdAt: string;
   updatedAt: string;
+  seatMode?: 'whitelist' | 'auto-add';
+  maxSeats?: number;
 }
 
 export default function RepositoriesPage() {
@@ -67,7 +70,6 @@ export default function RepositoriesPage() {
   // Dialog state
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [editingRepo, setEditingRepo] = useState<SyncedRepository | null>(null);
-  const [allowedUsernamesInput, setAllowedUsernamesInput] = useState('');
   const [excludedFilePatternsInput, setExcludedFilePatternsInput] = useState('');
   const [savingSettings, setSavingSettings] = useState(false);
 
@@ -215,7 +217,6 @@ export default function RepositoriesPage() {
 
   const openSettings = (repo: SyncedRepository) => {
     setEditingRepo(repo);
-    setAllowedUsernamesInput(repo.allowedUsernames?.join('\n') || '');
     setExcludedFilePatternsInput(repo.excludedFilePatterns?.join('\n') || '');
     setIsSettingsOpen(true);
   };
@@ -227,14 +228,6 @@ export default function RepositoriesPage() {
     setError('');
 
     try {
-      // Parse usernames: split by newline or comma, trim, and filter empty
-      const usernames = allowedUsernamesInput
-        .split(/[\n,]+/)
-        .map(u => u.trim())
-        .filter(u => u.length > 0)
-        // Remove @ if present
-        .map(u => u.startsWith('@') ? u.substring(1) : u);
-
       // Parse excluded file patterns: split by newline or comma, trim, and filter empty
       const excludedPatterns = excludedFilePatternsInput
         .split(/[\n,]+/)
@@ -249,7 +242,6 @@ export default function RepositoriesPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          allowedUsernames: usernames,
           excludedFilePatterns: excludedPatterns
         }),
       });
@@ -263,7 +255,7 @@ export default function RepositoriesPage() {
       // Update local state immediately for instant UI feedback
       setSyncedRepos(syncedRepos.map(repo =>
         repo.id === editingRepo.id
-          ? { ...repo, allowedUsernames: usernames, excludedFilePatterns: excludedPatterns }
+          ? { ...repo, excludedFilePatterns: excludedPatterns }
           : repo
       ));
 
@@ -501,7 +493,7 @@ export default function RepositoriesPage() {
 
       {/* Settings Dialog */}
       <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle>Repository Settings</DialogTitle>
             <DialogDescription>
@@ -509,26 +501,9 @@ export default function RepositoriesPage() {
             </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Seat Management (Allowed Users)</Label>
-              <p className="text-xs text-muted-foreground">
-                Enter the GitHub usernames of developers authorized to receive AI reviews on their Pull Requests.
-                Leave empty to allow everyone.
-              </p>
-              <Textarea
-                placeholder="username1, username2, @username3..."
-                className="h-32"
-                value={allowedUsernamesInput}
-                onChange={(e) => setAllowedUsernamesInput(e.target.value)}
-              />
-              <p className="text-xs text-muted-foreground">
-                Separate usernames with commas or new lines.
-              </p>
-            </div>
-
-            {/* Excluded File Patterns Section */}
-            <div className="space-y-2">
+          <div className="space-y-6 py-4">
+             {/* Excluded File Patterns Section */}
+             <div className="space-y-2">
               <Label htmlFor="excludedPatterns" className="text-sm font-medium">
                 Excluded File Patterns
               </Label>
@@ -541,7 +516,7 @@ export default function RepositoriesPage() {
                 value={excludedFilePatternsInput}
                 onChange={(e) => setExcludedFilePatternsInput(e.target.value)}
                 placeholder=".test&#10;.spec&#10;.mocks&#10;.freezed&#10;.g.dart&#10;dist/&#10;build/"
-                rows={8}
+                rows={5}
                 className="font-mono text-sm"
               />
               {editingRepo?.excludedFilePatterns && editingRepo.excludedFilePatterns.length > 0 && (
@@ -549,16 +524,22 @@ export default function RepositoriesPage() {
                   Currently excluding: {editingRepo.excludedFilePatterns.length} pattern(s)
                 </div>
               )}
+               <div className="flex justify-end pt-2">
+                 <Button onClick={saveSettings} disabled={savingSettings} size="sm">
+                   {savingSettings && <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />}
+                   Save Patterns
+                 </Button>
+               </div>
+            </div>
+
+            <div className="border-t pt-6">
+                <SeatManagement 
+                    repositoryId={editingRepo?.id || ''} 
+                    initialMode={editingRepo?.seatMode || 'auto-add'}
+                    initialMaxSeats={editingRepo?.maxSeats || 5}
+                />
             </div>
           </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsSettingsOpen(false)}>Cancel</Button>
-            <Button onClick={saveSettings} disabled={savingSettings}>
-              {savingSettings && <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />}
-              Save Changes
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

@@ -42,6 +42,11 @@ export function Sidebar({ className }: SidebarProps) {
       icon: "analytics",
     },
     {
+      title: "Billing",
+      href: "/dashboard/billing",
+      icon: "billing",
+    },
+    {
       title: "Settings",
       href: "/dashboard/settings",
       icon: "settings",
