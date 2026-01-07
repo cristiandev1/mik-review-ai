@@ -162,4 +162,28 @@ export class DeepSeekProvider implements AIProvider {
       throw new Error(`Failed to generate review from DeepSeek: ${error.message}`);
     }
   }
+
+  // TODO: Remover - Study Aid Implementation
+  async generateChat(params: import('../ai.interface.js').AIChatParams): Promise<import('../ai.interface.js').AIChatResult> {
+    const { messages, model = 'deepseek-chat', temperature = 0.7 } = params;
+
+    try {
+      const response = await this.client.chat.completions.create({
+        model,
+        messages: messages as any,
+        temperature,
+      });
+
+      const content = response.choices[0]?.message?.content || '';
+      const tokensUsed = response.usage?.total_tokens || 0;
+
+      return {
+        content,
+        tokensUsed
+      };
+    } catch (error: any) {
+      logger.error(error, 'DeepSeek API error in chat');
+      throw new Error(`Failed to generate chat from DeepSeek: ${error.message}`);
+    }
+  }
 }

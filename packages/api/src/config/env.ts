@@ -22,6 +22,7 @@ const envSchema = z.object({
 
   // AI Provider
   DEEPSEEK_API_KEY: z.string().optional(),
+  OPENAI_API_KEY: z.string().optional(),
 
   // GitHub
   GITHUB_APP_ID: z.string().optional(),

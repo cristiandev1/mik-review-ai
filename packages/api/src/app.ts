@@ -15,6 +15,8 @@ import { repositoryRoutes } from './modules/repositories/repository.routes.js';
 import { teamRoutes } from './modules/teams/team.routes.js';
 import { webhooksRoutes } from './modules/webhooks/webhooks.routes.js';
 import { billingRoutes } from './modules/billing/billing.routes.js';
+// TODO: Remover - Study Aid Route Import
+import { studyAidRoutes } from './modules/study-aid/study-aid.routes.js';
 import { globalErrorHandler } from './shared/errors/error-handler.js';
 
 export async function buildApp() {
@@ -45,7 +47,9 @@ export async function buildApp() {
     origin: [
       'https://mik-review-ai-dashboard.vercel.app',
       'https://dashboard.mik-review.ai',
-      /\.vercel\.app$/ // Permite subdomínios da vercel para deploy de preview
+      /\.vercel\.app$/, // Permite subdomínios da vercel para deploy de preview
+      // TODO: Remover - Study Aid Localhost CORS
+      'http://localhost:3001'
     ],
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'x-api-key'],
@@ -106,6 +110,8 @@ export async function buildApp() {
   await app.register(repositoryRoutes);
   await app.register(webhooksRoutes);
   await app.register(billingRoutes);
+  // TODO: Remover - Study Aid Route Registration
+  await app.register(studyAidRoutes, { prefix: '/study-aid' });
 
   // Global Error Handler
   app.setErrorHandler(globalErrorHandler);
