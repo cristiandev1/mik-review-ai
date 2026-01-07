@@ -33,15 +33,24 @@
     *   A Action envia os dados para a **API do Mik Review** usando a chave.
     *   Nossa API busca as **Custom Rules** configuradas no Dashboard para aquele repositório (ou globais), processa o review e posta os comentários de volta no PR.
 
-### Modelo de Negócio
-- **Free Plan**: 50 reviews/mês
-- **Pro Plan**: 500 reviews/mês ($9.99/mês)
-- **Business Plan**: 2000 reviews/mês ($29.99/mês)
+### Modelo de Negócio (Stripe Integration)
+- **Free (Trial)**: 3 reviews TOTAL (lifetime) - **$0**
+  - Após 3 reviews, usuário é obrigado a fazer upgrade
+  - `requiresPayment` flag marca quando trial expirou
+- **Hobby Plan**: 15 reviews/mês (por seat) - **$5/mês**
+  - Cobrança por seat (desenvolvedor ativo)
+  - `currentPlan: 'hobby'`
+- **Pro Plan**: 100 reviews/mês (por seat) - **$15/mês**
+  - Cobrança por seat (desenvolvedor ativo)
+  - `currentPlan: 'pro'`
 
-### Seat Management (Manual Assignment)
-- **Cobrança por Usuário Ativo**: Você só paga pelos desenvolvedores que criam Pull Requests.
-- **Whitelist Manual**: O administrador do repositório define manualmente (via Dashboard) quais usuários (`@github_username`) estão autorizados a receber reviews.
-- **Controle de Custos**: PRs de usuários fora da lista são ignorados, evitando consumo indevido de reviews do plano.
+### Seat Management (Dinâmico via Stripe)
+- **Cobrança por Seat**: Cada desenvolvedor ativo é uma "seat" paga
+- **Billing Cycle**: Mensal, resets no 1º dia do mês
+- **Limite Dinâmico**: `prsLimit = seatsPurchased * limitesPorPlan`
+  - Hobby: 15 PRs/seat
+  - Pro: 100 PRs/seat
+- **Rastreamento**: `usage_tracking` table com `prsProcessed` por developer/month
 
 ---
 
@@ -258,11 +267,15 @@ jobs:
   - Get file contents por commit SHA
   - Fetch múltiplos arquivos
 
-- [x] **Rate Limiting**
-  - Limites mensais por plano (50/500/2000)
-  - Contador Redis-based
-  - Auto-expiry no fim do mês
-  - Validação antes de criar review
+- [x] **Rate Limiting** ✅ ATUALIZADO (Stripe Integration)
+  - Limites por plano:
+    - Free (Trial): 3 reviews TOTAL (lifetime)
+    - Hobby: 15 reviews/mês per seat
+    - Pro: 100 reviews/mês per seat
+  - Free: Via flag `requiresPayment` na tabela users
+  - Hobby/Pro: Contador Redis-based + `usage_tracking` table
+  - Auto-expiry no fim do mês (Redis)
+  - Validação antes de criar review (bloqueia se exceder)
 
 - [x] **Database Schema**
   - Tabelas: users, apiKeys, reviews, usageAnalytics
@@ -367,14 +380,18 @@ jobs:
   - ❌ UI para gerenciar teams (frontend pendente)
   - **Status**: Backend completo, falta frontend
 
-- [ ] **Subscription/Billing**
+- [x] **Subscription/Billing** ✅ IMPLEMENTADO
   - ✅ Campo stripeCustomerId e stripeSubscriptionId em users
-  - ✅ Tabela subscriptions
-  - ❌ Integração com Stripe API
-  - ❌ Checkout flow
-  - ❌ Webhook handlers
-  - ❌ UI de planos e upgrade
-  - **Impacto**: Todos usuários ficam no free plan
+  - ✅ Tabela subscriptions com metered billing
+  - ✅ Integração com Stripe API (checkout, webhooks)
+  - ✅ Checkout flow (creates session, handles redirect)
+  - ✅ Webhook handlers (subscription.created, subscription.updated, etc)
+  - ✅ UI de planos e upgrade
+    - Pricing page com Free/Hobby/Pro
+    - Billing dashboard com current plan, usage, upgrade/cancel buttons
+    - Usage alerts (80%+ = amarelo, 100% = vermelho)
+  - ✅ Trial system (3 reviews grátis, depois upgrade obrigatório)
+  - **Status**: Completo e funcional com Stripe integration
 
 ---
 
@@ -786,18 +803,24 @@ class RateLimitService {
 }
 ```
 
-**Limites por Plano:**
+**Limites por Plano (Atualizados - Stripe Integration):**
 ```typescript
 const PLAN_LIMITS = {
-  free: 50,
-  pro: 500,
-  business: 2000
+  free: 3,        // Trial: 3 reviews TOTAL (lifetime), depois obrigatório upgrade
+  hobby: 15,      // Hobby: 15 reviews/mês por seat ($5/mês)
+  pro: 100        // Pro: 100 reviews/mês por seat ($15/mês)
 }
 ```
 
-**Implementação Redis:**
-- Key: `rate-limit:${userId}:${YYYY-MM}`
-- Increment on review creation
+**Implementação Dual:**
+1. **Free (Trial)**: Usa campo `trialPrsUsed` na tabela `users`
+   - Flag `requiresPayment` marca quando limit atingido
+   - Sem redis, apenas check no BD
+
+2. **Hobby/Pro (Paid)**: Usa Redis + `usage_tracking` table
+   - Key: `rate-limit:${userId}:${YYYY-MM}` (mensal)
+   - Increment on review creation
+   - Resets automaticamente no 1º dia do mês
 - Expire no fim do mês (auto-reset)
 - Check antes de criar review
 
@@ -1390,12 +1413,15 @@ const queryClient = new QueryClient({
   - **Arquivos:** `modules/billing/usage-billing.ts`
 
 #### Frontend
-- [ ] **3.4 Pricing Page** (Alta prioridade)
+- [x] **3.4 Pricing Page** (Alta prioridade) ✅ IMPLEMENTADO
   - Página pública: /pricing
-  - Cards dos planos (Free, Pro, Business)
+  - Cards dos planos:
+    - Free (Trial): $0 - 3 reviews total
+    - Hobby: $5/mês - 15 reviews/mês per seat
+    - Pro: $15/mês - 100 reviews/mês per seat
   - Feature comparison table
   - CTA buttons → checkout ou signup
-  - **Arquivos:** `app/pricing/page.tsx`
+  - **Arquivos:** `app/pricing/page.tsx`, `components/billing/pricing-plans.tsx`
 
 - [ ] **3.5 Checkout Flow** (Alta prioridade)
   - Select plan → Stripe Checkout
@@ -1403,21 +1429,25 @@ const queryClient = new QueryClient({
   - Update UI após upgrade
   - **Arquivos:** `app/checkout/`, `app/checkout/success/page.tsx`
 
-- [ ] **3.6 Billing Management** (Alta prioridade)
+- [x] **3.6 Billing Management** (Alta prioridade) ✅ IMPLEMENTADO
   - Página: /dashboard/billing
-  - Current plan display
-  - Usage stats (reviews usado vs limite)
-  - Payment method
-  - Invoices history
-  - Upgrade/downgrade buttons
-  - Cancel subscription
-  - **Arquivos:** `app/dashboard/billing/page.tsx`
+  - Current plan display ✅
+  - Usage stats (reviews usado vs limite) ✅
+    - Free: Mostra 0-3 reviews com status de trial
+    - Hobby/Pro: Mostra limite mensal com progress bar
+  - Payment method ✅ (via Stripe)
+  - Invoices history (future)
+  - Upgrade/downgrade buttons ✅
+  - Cancel subscription ✅
+  - **Arquivos:** `app/dashboard/billing/page.tsx`, `components/billing/usage-overview.tsx`, `components/billing/current-plan.tsx`
 
-- [ ] **3.7 Upgrade Prompts** (Média prioridade)
-  - Modal quando atingir rate limit
-  - Banner quando perto do limite (80%)
-  - Upgrade CTA em páginas
-  - **Arquivos:** `components/upgrade-modal.tsx`
+- [x] **3.7 Upgrade Prompts & Alerts** (Média prioridade) ✅ IMPLEMENTADO
+  - Banner quando atingir rate limit (100%) ✅ - Vermelho
+  - Banner quando perto do limite (80%+) ✅ - Amarelo
+  - Upgrade CTA em páginas ✅ - Direcionados para /dashboard/billing
+  - Status visual no dashboard (Available/Near Limit/Limit Reached) ✅
+  - Alertas inline na página de billing ✅
+  - **Arquivos:** `components/usage-limit-warning-banner.tsx`, `components/billing/usage-overview.tsx`, `app/dashboard/page.tsx`
 
 ---
 
