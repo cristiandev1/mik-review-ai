@@ -24,9 +24,15 @@ export class DeepSeekProvider implements AIProvider {
     const exampleComment = [
       '{',
       '  "file": "path/to/file.ts",',
-      '  "lineNumber": "10",',
+      '  "lineNumber": "10",  // EXACT line with the problem, not the function start',
       '  "comment": "Explanation of the issue and why this needs to be fixed.\n\n```suggestion\nconst fixedCode = value; // Use const for immutable values\n```"',
-      '}'
+      '}',
+      '',
+      '// WRONG: Commenting on function declaration (line 73) when problem is at line 76',
+      '// { "lineNumber": "73", ... }  ❌ BAD',
+      '',
+      '// CORRECT: Commenting on the exact problematic line (line 76)',
+      '// { "lineNumber": "76", ... }  ✅ GOOD',
     ].join('\n');
 
     const systemPrompt = [
@@ -63,6 +69,8 @@ export class DeepSeekProvider implements AIProvider {
       '📋 OUTPUT FORMAT:',
       '═══════════════════════════════════════════════════════════════════════════════',
       '',
+      '⚠️  IMPORTANT: lineNumber MUST be the EXACT line with the issue, not the function/block start!',
+      '',
       'Respond with a valid JSON object:',
       '{',
       '  "summary": "Markdown summary of the review",',
@@ -75,7 +83,12 @@ export class DeepSeekProvider implements AIProvider {
       '⚙️ TECHNICAL GUIDELINES:',
       '═══════════════════════════════════════════════════════════════════════════════',
       '',
-      '1. **Line Numbers:** Use ONLY the numbers shown in "Numbered Diff"',
+      '1. **Line Numbers - CRITICAL:** ',
+      '   - Use the EXACT line number where the problem exists',
+      '   - NOT the line where the function/block starts',
+      '   - Bad example: Function starts at line 73, hardcoded token at line 76 → DO NOT comment on line 73',
+      '   - Good example: Function starts at line 73, hardcoded token at line 76 → Comment on line 76',
+      '   - The GitHub diff shows line numbers - match them PRECISELY to the problematic code',
       '2. **File Paths:** Must exactly match the path in diff header',
       '3. **Only Comment on Added Lines:** Comment ONLY on lines with "+" prefix (new code)',
       '4. **Suggested Changes Format:** Use GitHub suggestion syntax for code fixes:',
