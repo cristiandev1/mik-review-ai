@@ -132,6 +132,7 @@ export class GitHubOAuthService {
             email: email,
             name: githubUser.name || githubUser.login,
             plan: 'free',
+            currentPlan: 'trial',
             emailVerified: true, // GitHub verified
             githubId: String(githubUser.id),
             githubAccessToken: accessToken,

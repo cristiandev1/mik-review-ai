@@ -21,7 +21,7 @@ export class TeamService {
           id: teamId,
           name: input.name,
           ownerId: userId,
-          plan: 'free',
+          plan: 'trial',
         })
         .returning();
 

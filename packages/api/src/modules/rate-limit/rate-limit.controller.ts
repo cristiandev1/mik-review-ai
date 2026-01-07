@@ -16,7 +16,7 @@ export class RateLimitController {
         });
       }
 
-      const plan = (user.plan || 'free') as PlanId;
+      const plan = (user.currentPlan || user.plan || 'trial') as PlanId;
       const userId = user.id;
 
       const usage = await rateLimitService.getUsage(userId, plan);

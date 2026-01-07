@@ -47,7 +47,7 @@ export class AnalyticsController {
       }
 
       // Get user's plan from auth middleware (attached by authMiddleware)
-      const plan = (user?.plan || 'free') as PlanId;
+      const plan = (user?.currentPlan || user?.plan || 'trial') as PlanId;
 
       const stats = await analyticsService.getDashboardStats(userId, plan);
 

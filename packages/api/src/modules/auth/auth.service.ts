@@ -36,6 +36,7 @@ export class AuthService {
         passwordHash,
         name: input.name || null,
         plan: 'free',
+        currentPlan: 'trial',
         emailVerified: false, // In production, send verification email
       })
       .returning();

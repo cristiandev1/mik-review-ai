@@ -22,7 +22,7 @@ export async function rateLimitMiddleware(
       });
     }
 
-    const plan = (user.userPlan || user.plan || 'free') as PlanId;
+    const plan = (user.currentPlan || user.userPlan || user.plan || 'trial') as PlanId;
     const userId = user.userId || user.id;
 
     // Check rate limit
@@ -32,7 +32,7 @@ export async function rateLimitMiddleware(
     reply.header('X-RateLimit-Limit', result.limit.toString());
     reply.header('X-RateLimit-Remaining', result.remaining.toString());
     reply.header('X-RateLimit-Used', result.used.toString());
-    reply.header('X-RateLimit-Plan', result.planName || 'free');
+    reply.header('X-RateLimit-Plan', result.planName || 'trial');
 
     if (result.resetAt) {
       reply.header('X-RateLimit-Reset', result.resetAt.toISOString());

@@ -26,8 +26,8 @@ export class ReviewService {
     }
 
     // Check if user has exceeded trial limit (3 free reviews)
-    // Trial limit only applies to free plan users
-    if (user.plan === 'free') {
+    // Trial limit only applies to trial plan users
+    if (user.currentPlan === 'trial') {
       if (user.requiresPayment || user.trialPrsUsed >= 3) {
         throw new ForbiddenError(
           'Your free trial limit (3 reviews) has been reached. Please upgrade your plan to continue processing code reviews.'
@@ -65,8 +65,8 @@ export class ReviewService {
       jobId: reviewId, // Use reviewId as jobId for easy lookup
     });
 
-    // Increment trial counter for free plan users
-    if (user.plan === 'free') {
+    // Increment trial counter for trial plan users
+    if (user.currentPlan === 'trial') {
       const newTrialCount = user.trialPrsUsed + 1;
       await db
         .update(users)
