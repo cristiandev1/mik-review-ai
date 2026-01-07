@@ -52,7 +52,7 @@ export const billingApi = {
 
   getRepositorySeats: async (repositoryId: string): Promise<RepositorySeat[]> => {
     const response = await api.get(`/billing/repositories/${repositoryId}/seats`);
-    return response.data.data;
+    return response.data.data.seats;
   },
 
   addDeveloper: async (data: { repositoryId: string; githubUsername: string }): Promise<void> => {

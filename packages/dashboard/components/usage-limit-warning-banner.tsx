@@ -53,7 +53,7 @@ export function UsageLimitWarningBanner({
               <p className="text-xs text-red-700 mt-1">
                 You have used all {limit} PRs for this month. No more reviews can be processed until {formattedDate}.
               </p>
-              {plan === 'free' && (
+              {plan === 'trial' && (
                 <p className="text-xs text-red-700 mt-2">
                   Upgrade your plan to continue processing code reviews.
                 </p>
@@ -62,7 +62,7 @@ export function UsageLimitWarningBanner({
           </div>
 
           <div className="flex items-center gap-2 flex-shrink-0">
-            {plan === 'free' && (
+            {plan === 'trial' && (
               <Link href="/dashboard/billing">
                 <Button
                   size="sm"
@@ -99,7 +99,7 @@ export function UsageLimitWarningBanner({
               You have used {used} of {limit} PRs this month ({Math.round(percentage)}%).
               Your limit will reset on {formattedDate}.
             </p>
-            {plan === 'free' && (
+            {plan === 'trial' && (
               <p className="text-xs text-amber-700 mt-2">
                 Consider upgrading your plan to process unlimited reviews.
               </p>
@@ -108,7 +108,7 @@ export function UsageLimitWarningBanner({
         </div>
 
         <div className="flex items-center gap-2 flex-shrink-0">
-          {plan === 'free' && (
+          {plan === 'trial' && (
             <Link href="/dashboard/billing">
               <Button
                 size="sm"

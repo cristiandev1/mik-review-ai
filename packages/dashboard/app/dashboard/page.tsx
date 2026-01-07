@@ -92,7 +92,7 @@ export default function DashboardPage() {
         used={stats.rateLimit.used}
         limit={stats.rateLimit.limit}
         resetDate={stats.rateLimit.resetAt}
-        plan="free"
+        plan="trial"
       />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

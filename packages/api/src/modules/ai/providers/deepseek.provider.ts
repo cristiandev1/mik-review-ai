@@ -25,7 +25,7 @@ export class DeepSeekProvider implements AIProvider {
       '{',
       '  "file": "path/to/file.ts",',
       '  "lineNumber": "10",',
-      '  "comment": "Explanation of the issue.\n\n**On line 10, replace:**\n```typescript\nvar problematicCode = value;\n```\n\n**With:**\n```typescript\nconst fixedCode = value; // Use const for immutable values\n```"',
+      '  "comment": "Explanation of the issue and why this needs to be fixed.\n\n```suggestion\nconst fixedCode = value; // Use const for immutable values\n```"',
       '}'
     ].join('\n');
 
@@ -78,9 +78,19 @@ export class DeepSeekProvider implements AIProvider {
       '1. **Line Numbers:** Use ONLY the numbers shown in "Numbered Diff"',
       '2. **File Paths:** Must exactly match the path in diff header',
       '3. **Only Comment on Added Lines:** Comment ONLY on lines with "+" prefix (new code)',
-      '4. **Provide Exact Replacements:** Show EXACT current code and fixed version',
+      '4. **Suggested Changes Format:** Use GitHub suggestion syntax for code fixes:',
+      '   - Start with brief explanation of the issue',
+      '   - Then add the fixed code in a ```suggestion block',
+      '   - The code in suggestion block MUST be COMPLETE - include the entire function/block being fixed',
+      '   - For single line fixes: provide just that line',
+      '   - For function/method fixes: provide the ENTIRE function with the fix applied',
+      '   - For multi-line fixes: include ALL lines that need to change, not just the problematic line',
+      '   - Never truncate or use "..." - always show the complete code',
+      '   - Example single line: "This causes a memory leak.\\n\\n```suggestion\\nconst fixed = value;\\n```"',
+      '   - Example function: "Function has security issue.\\n\\n```suggestion\\nasync function secure() {\\n  // complete function body here\\n  return result;\\n}\\n```"',
       '5. **No Issues:** If everything is good, return empty comments array and summary: "LGTM"',
       '6. **No Emojis:** Do not use emojis in output',
+      '7. **Keep It Concise:** Brief explanation + suggested code. No "replace this with that" text.',
       ''
     ].join('\n');
 

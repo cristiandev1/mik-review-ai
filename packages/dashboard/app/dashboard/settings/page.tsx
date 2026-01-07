@@ -13,7 +13,7 @@ interface User {
   id: string;
   email: string;
   name: string | null;
-  plan: 'free' | 'pro' | 'business';
+  plan: 'trial' | 'hobby' | 'pro';
   emailVerified: boolean;
   githubAccessToken: string | null;
   avatarUrl?: string | null;
@@ -33,23 +33,23 @@ interface DashboardStats {
 }
 
 const PLAN_LIMITS = {
-  free: 10,
-  pro: 1000,
-  business: 10000,
+  trial: 3,
+  hobby: 15,
+  pro: 100,
 };
 
 const PLAN_DETAILS = {
-  free: {
+  trial: {
     price: '$0',
-    features: ['10 reviews/month', '1 repository', 'Basic analytics'],
+    features: ['3 reviews (Total)', 'Unlimited repositories', 'Basic analytics'],
+  },
+  hobby: {
+    price: '$5/seat/month',
+    features: ['15 reviews/month per seat', 'Unlimited repositories', 'Email support', 'Advanced analytics'],
   },
   pro: {
-    price: '$99/month',
-    features: ['1,000 reviews/month', 'Unlimited repositories', 'Advanced analytics', 'Custom rules'],
-  },
-  business: {
-    price: 'Custom',
-    features: ['10,000 reviews/month', 'Unlimited repositories', 'Premium analytics', '50 team members'],
+    price: '$15/seat/month',
+    features: ['100 reviews/month per seat', 'Unlimited repositories', 'Priority support', 'Advanced analytics', 'API access'],
   },
 };
 
@@ -363,9 +363,9 @@ export default function SettingsPage() {
           )}
 
           {/* Upgrade Button */}
-          {user.plan === 'free' && (
+          {user.plan === 'trial' && (
             <div className="p-3 rounded-md border bg-accent/50">
-              <p className="text-sm mb-3">Need more reviews? Upgrade to Pro or Business plan.</p>
+              <p className="text-sm mb-3">Need more reviews? Upgrade to Hobby or Pro plan.</p>
               <Button className="w-full" variant="default">
                 Upgrade Plan <ExternalLink className="ml-2 h-4 w-4" />
               </Button>
