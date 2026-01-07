@@ -31,12 +31,22 @@ export class BillingController {
       .where(eq(subscriptions.userId, userId))
       .limit(1);
 
+    const userData = user[0];
+    const subscriptionData = subscription[0] || null;
+
+    // Map to BillingPlan structure expected by frontend
+    const plan: any = {
+      plan: userData.currentPlan as 'trial' | 'hobby' | 'pro',
+      status: subscriptionData?.status || 'active',
+      seatsPurchased: subscriptionData?.seatsPurchased || 1,
+      seatsUsed: subscriptionData?.seatsUsed || 0,
+      currentPeriodEnd: subscriptionData?.currentPeriodEnd?.toISOString(),
+      updatePaymentUrl: null, // TODO: Add Stripe Customer Portal URL if needed
+    };
+
     return reply.code(200).send({
       success: true,
-      data: {
-        user: user[0],
-        subscription: subscription[0] || null,
-      },
+      data: plan,
     });
   }
 

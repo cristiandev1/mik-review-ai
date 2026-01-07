@@ -25,17 +25,17 @@ export interface CheckoutSession {
 export const billingApi = {
   getPlan: async (): Promise<BillingPlan> => {
     const response = await api.get('/billing/plan');
-    return response.data;
+    return response.data.data;
   },
 
   getUsage: async (): Promise<BillingUsage> => {
     const response = await api.get('/billing/usage');
-    return response.data;
+    return response.data.data;
   },
 
   createCheckout: async (data: { plan: 'hobby' | 'pro'; seats: number; repositoryId?: string }): Promise<CheckoutSession> => {
     const response = await api.post('/billing/checkout', data);
-    return response.data;
+    return response.data.data;
   },
 
   updateSeats: async (data: { seats: number; subscriptionId: string }): Promise<void> => {
@@ -52,7 +52,7 @@ export const billingApi = {
 
   getRepositorySeats: async (repositoryId: string): Promise<RepositorySeat[]> => {
     const response = await api.get(`/billing/repositories/${repositoryId}/seats`);
-    return response.data;
+    return response.data.data;
   },
 
   addDeveloper: async (data: { repositoryId: string; githubUsername: string }): Promise<void> => {
