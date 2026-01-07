@@ -36,13 +36,14 @@ export function PricingPlans({ onCheckout }: PricingPlansProps) {
         <CardHeader>
           <CardTitle>Hobby</CardTitle>
           <CardDescription>Perfect for individual developers and small projects.</CardDescription>
-          <div className="mt-4 text-3xl font-bold">$10<span className="text-sm font-normal text-muted-foreground">/seat/mo</span></div>
+          <div className="mt-4 text-3xl font-bold">$5<span className="text-sm font-normal text-muted-foreground">/seat/mo</span></div>
         </CardHeader>
         <CardContent className="flex-1">
           <ul className="space-y-2 text-sm">
-            <li className="flex items-center"><Check className="mr-2 h-4 w-4 text-primary" /> 100 PRs / month</li>
-            <li className="flex items-center"><Check className="mr-2 h-4 w-4 text-primary" /> 1M Tokens / month</li>
+            <li className="flex items-center"><Check className="mr-2 h-4 w-4 text-primary" /> 15 PRs / month per seat</li>
+            <li className="flex items-center"><Check className="mr-2 h-4 w-4 text-primary" /> Unlimited Repositories</li>
             <li className="flex items-center"><Check className="mr-2 h-4 w-4 text-primary" /> Email Support</li>
+            <li className="flex items-center"><Check className="mr-2 h-4 w-4 text-primary" /> Advanced Analytics</li>
           </ul>
         </CardContent>
         <CardFooter>
@@ -57,14 +58,15 @@ export function PricingPlans({ onCheckout }: PricingPlansProps) {
         <CardHeader>
           <CardTitle>Pro</CardTitle>
           <CardDescription>For growing teams needing more power.</CardDescription>
-          <div className="mt-4 text-3xl font-bold">$29<span className="text-sm font-normal text-muted-foreground">/seat/mo</span></div>
+          <div className="mt-4 text-3xl font-bold">$15<span className="text-sm font-normal text-muted-foreground">/seat/mo</span></div>
         </CardHeader>
         <CardContent className="flex-1">
           <ul className="space-y-2 text-sm">
-            <li className="flex items-center"><Check className="mr-2 h-4 w-4 text-primary" /> Unlimited PRs</li>
-            <li className="flex items-center"><Check className="mr-2 h-4 w-4 text-primary" /> Unlimited Tokens (fair use)</li>
+            <li className="flex items-center"><Check className="mr-2 h-4 w-4 text-primary" /> 100 PRs / month per seat</li>
+            <li className="flex items-center"><Check className="mr-2 h-4 w-4 text-primary" /> Unlimited Repositories</li>
             <li className="flex items-center"><Check className="mr-2 h-4 w-4 text-primary" /> Priority Support</li>
             <li className="flex items-center"><Check className="mr-2 h-4 w-4 text-primary" /> Advanced Analytics</li>
+            <li className="flex items-center"><Check className="mr-2 h-4 w-4 text-primary" /> API Access</li>
           </ul>
         </CardContent>
         <CardFooter>
