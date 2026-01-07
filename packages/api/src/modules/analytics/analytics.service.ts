@@ -226,8 +226,8 @@ export class AnalyticsService {
     // Get rate limit info
     let rateLimitInfo: any;
 
-    // For free plan users, show trial limit (3 total reviews)
-    if (plan === 'free') {
+    // For trial plan users, show trial limit (3 total reviews)
+    if (plan === 'trial') {
       const [user] = await db
         .select()
         .from(users)

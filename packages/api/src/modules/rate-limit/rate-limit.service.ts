@@ -21,19 +21,7 @@ export class RateLimitService {
    */
   async checkLimit(userId: string, plan: PlanId): Promise<RateLimitResult> {
     const planConfig = PLANS[plan];
-    const planLimits = planConfig.limits;
-    const limit = planLimits.reviewsPerMonth;
-
-    // Unlimited plans
-    if (limit === -1 || limit >= 100000) {
-      return {
-        allowed: true,
-        remaining: -1,
-        limit: -1,
-        used: 0,
-        planName: planConfig.name,
-      };
-    }
+    const limit = planConfig.limits.reviewsPerMonth;
 
     const currentMonth = this.getCurrentMonth();
     const key = `rate-limit:${userId}:${currentMonth}`;
@@ -74,10 +62,6 @@ export class RateLimitService {
     const planConfig = PLANS[plan];
     const limit = planConfig.limits.reviewsPerMonth;
 
-    if (limit === -1 || limit >= 100000) {
-      return { allowed: true, remaining: -1, limit: -1, used: 0, planName: planConfig.name };
-    }
-
     const currentMonth = this.getCurrentMonth();
     const key = `rate-limit:${userId}:${currentMonth}`;
 
@@ -90,8 +74,8 @@ export class RateLimitService {
     }
 
     if (used > limit) {
-      // If we exceeded, we should ideally not decrement back to avoid race condition 
-      // where many people exceed and we stay at limit, 
+      // If we exceeded, we should ideally not decrement back to avoid race condition
+      // where many people exceed and we stay at limit,
       // but for monthly limits it's fine.
       return {
         allowed: false,
@@ -141,16 +125,6 @@ export class RateLimitService {
   async getUsage(userId: string, plan: PlanId): Promise<RateLimitResult> {
     const planConfig = PLANS[plan];
     const limit = planConfig.limits.reviewsPerMonth;
-
-    if (limit === -1 || limit >= 100000) {
-      return {
-        allowed: true,
-        remaining: -1,
-        limit: -1,
-        used: 0,
-        planName: planConfig.name,
-      };
-    }
 
     const currentMonth = this.getCurrentMonth();
     const key = `rate-limit:${userId}:${currentMonth}`;

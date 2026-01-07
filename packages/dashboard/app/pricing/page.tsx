@@ -14,49 +14,49 @@ interface FAQItem {
 
 const faqs: FAQItem[] = [
   {
-    question: 'How does the seat-based billing model work?',
+    question: 'How does the free trial work?',
     answer:
-      'You purchase seats upfront for a month. Each seat allows one developer to receive reviews automatically. Hobby: $5/month per seat. Pro: $15/month per seat. Payment is taken at the beginning of the month.',
+      'All new users get 3 free code reviews. No credit card required to get started. Once you use all 3 reviews, you must upgrade to a paid plan to continue.',
   },
   {
-    question: 'What is the difference between Whitelist Mode and Auto-Add Mode?',
+    question: 'What is the difference between Hobby and Pro plans?',
     answer:
-      'Whitelist Mode: You manually add developers who can access reviews. When you add someone, they are charged. Auto-Add Mode: Any developer can open a PR (while seats are available). Developers are automatically assigned and charged.',
+      'Hobby: 15 reviews per month per seat at $5/month. Pro: 100 reviews per month per seat at $15/month. Both plans include whitelist and auto-add modes for seat management.',
   },
   {
-    question: 'What happens when there are no available seats?',
+    question: 'How does seat-based billing work?',
     answer:
-      'The system blocks the PR with a clear message. You receive an email suggesting to purchase +1 seat for $5 (Hobby) or $15 (Pro).',
+      'You pay per developer seat per month. Hobby: $5/month per seat. Pro: $15/month per seat. A seat is assigned when a developer opens a PR and can be manually managed or automatically assigned depending on your settings.',
   },
   {
-    question: 'Can I remove a developer?',
+    question: 'Can I switch between Hobby and Pro?',
     answer:
-      'Yes! Remove them from your list and receive a proportional credit on your next bill, saving $5 (Hobby) or $15 (Pro) per month.',
+      'Yes! You can upgrade or downgrade anytime. The difference in pricing is adjusted on your next billing cycle.',
   },
   {
-    question: 'What happens if my payment fails?',
+    question: 'What is Whitelist Mode?',
     answer:
-      'Reviews are blocked until payment is resolved. You will receive an email and see a warning in your dashboard.',
+      'You manually add developers to your repository via the dashboard. When you add someone, they get a seat and start being charged immediately. Remove them anytime for a proportional credit.',
   },
   {
-    question: 'Can I change plans?',
+    question: 'What is Auto-Add Mode?',
     answer:
-      'Yes! Switch between Hobby and Pro anytime. The difference is adjusted on your next bill.',
+      'Any developer can open a PR. If you have available seats, they are automatically assigned one and charged. If no seats are available, the PR is blocked with a helpful message.',
   },
   {
-    question: 'Is there a free trial?',
+    question: 'What happens when I exceed my monthly limit?',
     answer:
-      'Yes! All new users get 3 free reviews OR 300k tokens (whichever runs out first). Test without a credit card!',
+      'You cannot create new reviews once you reach your monthly limit. You must wait until the next month or upgrade to a higher plan with more reviews.',
   },
   {
     question: 'How is consumption tracked?',
     answer:
-      'Consumption is tracked per developer. Each PR processed and tokens used are recorded in your dashboard.',
+      'Consumption is tracked per developer per month. Your dashboard shows usage in real-time, including PRs processed and alerts when nearing your limit.',
   },
   {
-    question: 'Can I use one plan across multiple repositories?',
+    question: 'Can I use different plans for different repositories?',
     answer:
-      'Yes! Seats are managed per repository. You can have some repositories on Hobby and others on Pro.',
+      'Yes! Each repository can have its own plan. You could have one repository on Hobby and another on Pro, depending on your needs.',
   },
 ]
 
@@ -92,23 +92,23 @@ export default function PricingPage() {
       {/* Hero Section */}
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-24 text-center">
         <h1 className="text-5xl md:text-6xl font-bold text-slate-900 mb-6 tracking-tight">
-          Simple, Transparent Pricing
+          AI Code Reviews Made Simple
         </h1>
         <p className="text-xl text-slate-600 mb-8 max-w-2xl mx-auto leading-relaxed">
-          Pay for what you need, scale as your team grows. Buy seats upfront, use reviews for a full month.
+          Start free with 3 reviews. Upgrade when you&apos;re ready. Pay per seat, get unlimited reviews on your plan.
         </p>
       </div>
 
       {/* Free Trial Banner */}
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 mb-16">
-        <Card className="bg-slate-50 border border-slate-200">
+        <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200">
           <CardContent className="py-8">
             <div className="text-center">
               <h3 className="font-semibold text-slate-900 mb-2 text-lg">
                 Free Trial for Everyone
               </h3>
               <p className="text-slate-600 text-sm md:text-base max-w-2xl mx-auto">
-                Get <strong>3 free reviews</strong> or <strong>300,000 tokens</strong> (whichever runs out first). Test the full power of AI code reviews with no credit card required.
+                Get <strong>3 free code reviews</strong> with zero credit card required. After that, upgrade to unlock unlimited reviews and unlock the power of AI-powered code reviews.
               </p>
             </div>
           </CardContent>
@@ -176,11 +176,11 @@ export default function PricingPage() {
               <ul className="space-y-3">
                 <li className="flex items-center gap-3">
                   <Check className="w-5 h-5 text-slate-900 flex-shrink-0" />
-                  <span className="text-slate-700">1 included seat</span>
+                  <span className="text-slate-700">15 reviews per month</span>
                 </li>
                 <li className="flex items-center gap-3">
                   <Check className="w-5 h-5 text-slate-900 flex-shrink-0" />
-                  <span className="text-slate-700">Unlimited additional seats</span>
+                  <span className="text-slate-700">Per seat billing</span>
                 </li>
                 <li className="flex items-center gap-3">
                   <Check className="w-5 h-5 text-slate-900 flex-shrink-0" />
@@ -188,7 +188,7 @@ export default function PricingPage() {
                 </li>
                 <li className="flex items-center gap-3">
                   <Check className="w-5 h-5 text-slate-900 flex-shrink-0" />
-                  <span className="text-slate-700">Priority support</span>
+                  <span className="text-slate-700">Email support</span>
                 </li>
                 <li className="flex items-center gap-3">
                   <Check className="w-5 h-5 text-slate-900 flex-shrink-0" />
@@ -219,11 +219,11 @@ export default function PricingPage() {
               <ul className="space-y-3">
                 <li className="flex items-center gap-3">
                   <Check className="w-5 h-5 text-slate-900 flex-shrink-0" />
-                  <span className="text-slate-700">1 included seat</span>
+                  <span className="text-slate-700">100 reviews per month</span>
                 </li>
                 <li className="flex items-center gap-3">
                   <Check className="w-5 h-5 text-slate-900 flex-shrink-0" />
-                  <span className="text-slate-700">Unlimited additional seats</span>
+                  <span className="text-slate-700">Per seat billing</span>
                 </li>
                 <li className="flex items-center gap-3">
                   <Check className="w-5 h-5 text-slate-900 flex-shrink-0" />
@@ -235,7 +235,7 @@ export default function PricingPage() {
                 </li>
                 <li className="flex items-center gap-3">
                   <Check className="w-5 h-5 text-slate-900 flex-shrink-0" />
-                  <span className="text-slate-700">API access</span>
+                  <span className="text-slate-700">Priority support (24/7)</span>
                 </li>
               </ul>
 
@@ -266,15 +266,15 @@ export default function PricingPage() {
               <tbody>
                 <tr className="border-b border-slate-200 hover:bg-white transition-colors">
                   <td className="py-3 px-4 text-slate-700">Reviews per month</td>
-                  <td className="text-center py-3 px-4 text-sm text-slate-600">3</td>
-                  <td className="text-center py-3 px-4 text-sm text-slate-600">Unlimited</td>
-                  <td className="text-center py-3 px-4 text-sm text-slate-600">Unlimited</td>
+                  <td className="text-center py-3 px-4 text-sm text-slate-600">3 (Total)</td>
+                  <td className="text-center py-3 px-4 text-sm text-slate-600">15 per seat</td>
+                  <td className="text-center py-3 px-4 text-sm text-slate-600">100 per seat</td>
                 </tr>
                 <tr className="border-b border-slate-200 hover:bg-white transition-colors">
-                  <td className="py-3 px-4 text-slate-700">Developer seats</td>
-                  <td className="text-center py-3 px-4 text-sm text-slate-600">1</td>
-                  <td className="text-center py-3 px-4 text-sm text-slate-600">Unlimited</td>
-                  <td className="text-center py-3 px-4 text-sm text-slate-600">Unlimited</td>
+                  <td className="py-3 px-4 text-slate-700">Billing cycle</td>
+                  <td className="text-center py-3 px-4 text-sm text-slate-600">One-time</td>
+                  <td className="text-center py-3 px-4 text-sm text-slate-600">Monthly</td>
+                  <td className="text-center py-3 px-4 text-sm text-slate-600">Monthly</td>
                 </tr>
                 <tr className="border-b border-slate-200 hover:bg-white transition-colors">
                   <td className="py-3 px-4 text-slate-700">Whitelist Mode</td>
@@ -315,67 +315,76 @@ export default function PricingPage() {
       {/* How It Works */}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
         <h2 className="text-3xl font-bold text-slate-900 mb-16 text-center">
-          How Seat-Based Billing Works
+          Get Started in Minutes
         </h2>
 
-        <div className="grid md:grid-cols-2 gap-8 mb-16">
+        <div className="grid md:grid-cols-3 gap-8 mb-16">
           <Card className="border border-slate-200">
             <CardHeader>
-              <CardTitle className="text-xl">Whitelist Mode</CardTitle>
-              <p className="text-sm text-slate-500 mt-2">Perfect for closed teams</p>
+              <CardTitle className="text-xl">1. Sign Up Free</CardTitle>
+              <p className="text-sm text-slate-500 mt-2">No credit card required</p>
             </CardHeader>
             <CardContent className="space-y-4">
               <ol className="space-y-3 text-sm text-slate-700">
                 <li className="flex gap-3">
-                  <span className="font-semibold flex-shrink-0 text-slate-900">1.</span>
-                  <span>You manually add developers to your repository</span>
+                  <span className="font-semibold flex-shrink-0 text-slate-900">a.</span>
+                  <span>Create an account with your GitHub</span>
                 </li>
                 <li className="flex gap-3">
-                  <span className="font-semibold flex-shrink-0 text-slate-900">2.</span>
-                  <span>Each dev is charged $5 (Hobby) or $15 (Pro) per month</span>
+                  <span className="font-semibold flex-shrink-0 text-slate-900">b.</span>
+                  <span>Get 3 free code reviews instantly</span>
                 </li>
                 <li className="flex gap-3">
-                  <span className="font-semibold flex-shrink-0 text-slate-900">3.</span>
-                  <span>They get unlimited reviews on your repository</span>
-                </li>
-                <li className="flex gap-3">
-                  <span className="font-semibold flex-shrink-0 text-slate-900">4.</span>
-                  <span>Remove anytime for a proportional credit</span>
+                  <span className="font-semibold flex-shrink-0 text-slate-900">c.</span>
+                  <span>Test the full AI power</span>
                 </li>
               </ol>
-              <div className="bg-slate-50 p-3 rounded border border-slate-200 mt-4 text-sm text-slate-700">
-                <strong>Example:</strong> 3 team members on Hobby = 3 × $5 = $15/month
-              </div>
             </CardContent>
           </Card>
 
           <Card className="border border-slate-200">
             <CardHeader>
-              <CardTitle className="text-xl">Auto-Add Mode</CardTitle>
-              <p className="text-sm text-slate-500 mt-2">Great for dynamic teams</p>
+              <CardTitle className="text-xl">2. Configure Your Repo</CardTitle>
+              <p className="text-sm text-slate-500 mt-2">Choose your settings</p>
             </CardHeader>
             <CardContent className="space-y-4">
               <ol className="space-y-3 text-sm text-slate-700">
                 <li className="flex gap-3">
-                  <span className="font-semibold flex-shrink-0 text-slate-900">1.</span>
-                  <span>Any developer can open a PR</span>
+                  <span className="font-semibold flex-shrink-0 text-slate-900">a.</span>
+                  <span>Select repositories for review</span>
                 </li>
                 <li className="flex gap-3">
-                  <span className="font-semibold flex-shrink-0 text-slate-900">2.</span>
-                  <span>If seats available, they get one automatically</span>
+                  <span className="font-semibold flex-shrink-0 text-slate-900">b.</span>
+                  <span>Choose Whitelist or Auto-Add mode</span>
                 </li>
                 <li className="flex gap-3">
-                  <span className="font-semibold flex-shrink-0 text-slate-900">3.</span>
-                  <span>You are charged for each dev that uses a seat</span>
-                </li>
-                <li className="flex gap-3">
-                  <span className="font-semibold flex-shrink-0 text-slate-900">4.</span>
-                  <span>No seats left? PR is blocked with helpful message</span>
+                  <span className="font-semibold flex-shrink-0 text-slate-900">c.</span>
+                  <span>Set custom review rules (optional)</span>
                 </li>
               </ol>
-              <div className="bg-slate-50 p-3 rounded border border-slate-200 mt-4 text-sm text-slate-700">
-                <strong>Example:</strong> 5 seats bought, 3 devs open PRs = 3 × $5 = $15/month
-              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border border-slate-200">
+            <CardHeader>
+              <CardTitle className="text-xl">3. Upgrade When Ready</CardTitle>
+              <p className="text-sm text-slate-500 mt-2">Scale with confidence</p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <ol className="space-y-3 text-sm text-slate-700">
+                <li className="flex gap-3">
+                  <span className="font-semibold flex-shrink-0 text-slate-900">a.</span>
+                  <span>Choose Hobby ($5) or Pro ($15) per seat</span>
+                </li>
+                <li className="flex gap-3">
+                  <span className="font-semibold flex-shrink-0 text-slate-900">b.</span>
+                  <span>Add team members as seats</span>
+                </li>
+                <li className="flex gap-3">
+                  <span className="font-semibold flex-shrink-0 text-slate-900">c.</span>
+                  <span>Start getting AI-powered reviews</span>
+                </li>
+              </ol>
             </CardContent>
           </Card>
         </div>
@@ -383,16 +392,16 @@ export default function PricingPage() {
         {/* Benefits */}
         <div className="grid md:grid-cols-3 gap-8">
           <div>
-            <h4 className="font-semibold text-slate-900 mb-2">Predictable Costs</h4>
-            <p className="text-slate-600 text-sm">Know exactly what you will pay each month. No surprises.</p>
+            <h4 className="font-semibold text-slate-900 mb-2">Try Before You Pay</h4>
+            <p className="text-slate-600 text-sm">3 free reviews to test the platform. No commitment, no credit card needed.</p>
           </div>
           <div>
-            <h4 className="font-semibold text-slate-900 mb-2">Protected Revenue</h4>
-            <p className="text-slate-600 text-sm">You only pay for seats you buy. We never lose reviews.</p>
+            <h4 className="font-semibold text-slate-900 mb-2">Pay Per Seat</h4>
+            <p className="text-slate-600 text-sm">Only pay for developers who actually use code reviews. Scale up or down anytime.</p>
           </div>
           <div>
-            <h4 className="font-semibold text-slate-900 mb-2">Instant Feedback</h4>
-            <p className="text-slate-600 text-sm">Developers get AI reviews immediately when opening PRs.</p>
+            <h4 className="font-semibold text-slate-900 mb-2">Actionable Reviews</h4>
+            <p className="text-slate-600 text-sm">Get detailed AI-powered feedback on code quality, security, and best practices.</p>
           </div>
         </div>
       </div>
