@@ -1,5 +1,5 @@
 import { db } from '../../config/database.js';
-import { reviews } from '../../database/schema.js';
+import { reviews, users } from '../../database/schema.js';
 import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { reviewQueue, type ReviewJobData } from './review.queue.js';
@@ -13,6 +13,27 @@ const rateLimitService = new RateLimitService();
 export class ReviewService {
   async createReview(userId: string, input: CreateReviewInput) {
     const reviewId = nanoid();
+
+    // Get user to check trial limit
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    if (!user) {
+      throw new NotFoundError('User not found');
+    }
+
+    // Check if user has exceeded trial limit (3 free reviews)
+    // Trial limit only applies to free plan users
+    if (user.plan === 'free') {
+      if (user.requiresPayment || user.trialPrsUsed >= 3) {
+        throw new ForbiddenError(
+          'Your free trial limit (3 reviews) has been reached. Please upgrade your plan to continue processing code reviews.'
+        );
+      }
+    }
 
     // Validate that the repository is enabled for this user
     const isEnabled = await repositoryService.isRepositoryEnabled(userId, input.repository);
@@ -44,8 +65,21 @@ export class ReviewService {
       jobId: reviewId, // Use reviewId as jobId for easy lookup
     });
 
-    // Increment usage counter for rate limiting
-    await rateLimitService.incrementUsage(userId);
+    // Increment trial counter for free plan users
+    if (user.plan === 'free') {
+      const newTrialCount = user.trialPrsUsed + 1;
+      await db
+        .update(users)
+        .set({
+          trialPrsUsed: newTrialCount,
+          requiresPayment: newTrialCount >= 3,
+          updatedAt: new Date(),
+        })
+        .where(eq(users.id, userId));
+    } else {
+      // For paid plans, use the rate limit service
+      await rateLimitService.incrementUsage(userId);
+    }
 
     return {
       id: reviewId,

@@ -4,7 +4,7 @@ export const PLANS = {
     name: 'Free',
     price: 0,
     limits: {
-      reviewsPerMonth: 10 as number,
+      reviewsPerMonth: 3 as number,
       repositories: 1,
       teamMembers: 1,
       customRules: false,

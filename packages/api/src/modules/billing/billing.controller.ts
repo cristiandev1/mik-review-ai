@@ -41,30 +41,51 @@ export class BillingController {
   }
 
   /**
-   * Get monthly usage
+   * Get monthly usage with plan limits
+   * Plan limits: free=3 total, hobby=15/month, pro=100/month
    */
   async getUsage(request: FastifyRequest, reply: FastifyReply) {
     const userId = (request as any).userId;
 
-    const user = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+    const userRecord = await db.select().from(users).where(eq(users.id, userId)).limit(1);
 
-    if (!user.length) {
+    if (!userRecord.length) {
       throw new NotFoundError('User not found');
     }
 
+    const user = userRecord[0];
     const currentMonth = new Date().toISOString().slice(0, 7);
 
-    const usage = await db
+    // Determine plan limits
+    // Free (trial): 3 PRs total (lifetime)
+    // Hobby: 15 PRs/month per seat ($5/month)
+    // Pro: 100 PRs/month per seat ($15/month)
+    let prsLimit = -1; // Unlimited by default
+    let tokensLimit = -1; // Unlimited by default
+
+    if (user.currentPlan === 'hobby') {
+      prsLimit = 15; // Hobby: 15 PRs/month per seat
+    } else if (user.currentPlan === 'pro') {
+      prsLimit = 100; // Pro: 100 PRs/month per seat
+    }
+
+    // Get usage data for current month
+    const usageData = await db
       .select()
       .from(usageTracking)
       .where(and(eq(usageTracking.userId, userId), eq(usageTracking.billingMonth, currentMonth)));
 
+    const prsUsed = usageData.reduce((sum, u) => sum + (u.prsProcessed || 0), 0);
+    const tokensUsed = usageData.reduce((sum, u) => sum + (u.tokensConsumed || 0), 0);
+
     return reply.code(200).send({
       success: true,
       data: {
-        user: user[0],
-        usage,
-        currentMonth,
+        prsUsed,
+        prsLimit,
+        tokensUsed,
+        tokensLimit,
+        billingMonth: currentMonth,
       },
     });
   }

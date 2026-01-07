@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Icons } from "@/components/icons"
 import { Button } from "@/components/ui/button"
+import { UsageLimitWarningBanner } from "@/components/usage-limit-warning-banner"
 
 interface DashboardStats {
   totalReviews: number;
@@ -86,6 +87,13 @@ export default function DashboardPage() {
           Overview of your code review activity and usage.
         </p>
       </div>
+
+      <UsageLimitWarningBanner
+        used={stats.rateLimit.used}
+        limit={stats.rateLimit.limit}
+        resetDate={stats.rateLimit.resetAt}
+        plan="free"
+      />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
@@ -180,23 +188,50 @@ export default function DashboardPage() {
         </Card>
         <Card className="col-span-3">
           <CardHeader>
-            <CardTitle>Monthly Usage</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle>Trial Usage</CardTitle>
+              <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                stats.rateLimit.used >= stats.rateLimit.limit
+                  ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                  : (stats.rateLimit.used / stats.rateLimit.limit) >= 0.8
+                  ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                  : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+              }`}>
+                {stats.rateLimit.used >= stats.rateLimit.limit ? 'Limit Reached' :
+                 (stats.rateLimit.used / stats.rateLimit.limit) >= 0.8 ? 'Near Limit' :
+                 'Available'}
+              </span>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
              <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Plan Usage</span>
+                    <span className="text-muted-foreground">Free Reviews (Total)</span>
                     <span className="font-medium">{stats.rateLimit.used} / {stats.rateLimit.limit}</span>
                 </div>
                  <div className="h-2 w-full rounded-full bg-secondary">
-                    <div 
-                        className="h-full rounded-full bg-primary transition-all" 
-                        style={{ width: `${Math.min((stats.rateLimit.used / stats.rateLimit.limit) * 100, 100)}%` }} 
+                    <div
+                        className={`h-full rounded-full transition-all ${
+                          stats.rateLimit.used >= stats.rateLimit.limit ? 'bg-red-500' :
+                          (stats.rateLimit.used / stats.rateLimit.limit) >= 0.8 ? 'bg-amber-500' :
+                          'bg-primary'
+                        }`}
+                        style={{ width: `${Math.min((stats.rateLimit.used / stats.rateLimit.limit) * 100, 100)}%` }}
                     />
                  </div>
                  <p className="text-xs text-muted-foreground">
-                    Resets on {new Date(stats.rateLimit.resetAt).toLocaleDateString()}
+                    You have {stats.rateLimit.limit} free code reviews included with your trial.
                  </p>
+                 {stats.rateLimit.used >= stats.rateLimit.limit && (
+                   <div className="mt-3 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/50 rounded text-xs text-red-700 dark:text-red-400">
+                     You&apos;ve used all your free trial reviews. Upgrade your plan to continue processing code reviews.
+                   </div>
+                 )}
+                 {(stats.rateLimit.used / stats.rateLimit.limit) >= 0.8 && stats.rateLimit.used < stats.rateLimit.limit && (
+                   <div className="mt-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-900/50 rounded text-xs text-amber-700 dark:text-amber-400">
+                     You&apos;ve used {stats.rateLimit.used} of {stats.rateLimit.limit} free reviews. Upgrade to unlock unlimited reviews.
+                   </div>
+                 )}
              </div>
           </CardContent>
         </Card>

@@ -69,11 +69,11 @@ export function CurrentPlan({ plan, isLoading, onManageSubscription }: CurrentPl
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
             <p className="text-muted-foreground">Status</p>
-            <p className="font-medium capitalize">{plan.status.replace('_', ' ')}</p>
+            <p className="font-medium capitalize">{plan.status ? plan.status.replace('_', ' ') : 'Unknown'}</p>
           </div>
           {plan.currentPeriodEnd && (
             <div>
-              <p className="text-muted-foreground">{plan.status === 'canceled' ? 'Ends on' : 'Renews on'}</p>
+              <p className="text-muted-foreground">{plan.status && plan.status === 'canceled' ? 'Ends on' : 'Renews on'}</p>
               <p className="font-medium">{new Date(plan.currentPeriodEnd).toLocaleDateString()}</p>
             </div>
           )}

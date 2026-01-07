@@ -1,5 +1,5 @@
 import { db } from '../../config/database.js';
-import { reviews, usageAnalytics } from '../../database/schema.js';
+import { reviews, usageAnalytics, users } from '../../database/schema.js';
 import { eq, and, gte, sql, desc } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { RateLimitService } from '../rate-limit/rate-limit.service.js';
@@ -224,7 +224,36 @@ export class AnalyticsService {
     }));
 
     // Get rate limit info
-    const rateLimitInfo = await rateLimitService.getUsage(userId, plan);
+    let rateLimitInfo: any;
+
+    // For free plan users, show trial limit (3 total reviews)
+    if (plan === 'free') {
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+
+      if (user) {
+        rateLimitInfo = {
+          limit: 3,
+          used: user.trialPrsUsed || 0,
+          remaining: Math.max(0, 3 - (user.trialPrsUsed || 0)),
+          resetAt: null, // Trial doesn't reset
+        };
+      } else {
+        rateLimitInfo = { limit: 3, used: 0, remaining: 3, resetAt: null };
+      }
+    } else {
+      // For paid plans, use the rate limit service (monthly)
+      const info = await rateLimitService.getUsage(userId, plan);
+      rateLimitInfo = {
+        limit: info.limit,
+        used: info.used,
+        remaining: info.remaining,
+        resetAt: info.resetAt,
+      };
+    }
 
     return {
       totalReviews,
@@ -233,12 +262,7 @@ export class AnalyticsService {
       avgProcessingTime,
       topRepositories,
       recentReviews,
-      rateLimit: {
-        limit: rateLimitInfo.limit,
-        used: rateLimitInfo.used,
-        remaining: rateLimitInfo.remaining,
-        resetAt: rateLimitInfo.resetAt,
-      },
+      rateLimit: rateLimitInfo,
     };
   }
 
