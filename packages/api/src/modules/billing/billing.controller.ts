@@ -9,7 +9,7 @@ import {
 } from './billing.schemas.js';
 import { db } from '../../config/database.js';
 import { users, subscriptions, repositories, repositorySeats, usageTracking } from '../../database/schema.js';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, ne, isNotNull } from 'drizzle-orm';
 import { NotFoundError } from '../../shared/errors/app-error.js';
 
 export class BillingController {
@@ -147,20 +147,43 @@ export class BillingController {
    */
   async cancelSubscription(request: FastifyRequest, reply: FastifyReply) {
     const userId = (request as any).userId;
-    const { subscriptionId } = request.body as { subscriptionId: string };
+    const body = request.body as { subscriptionId?: string } | undefined;
+    const subscriptionId = body?.subscriptionId;
 
-    // Verify subscription belongs to user
-    const subscription = await db
-      .select()
-      .from(subscriptions)
-      .where(and(eq(subscriptions.userId, userId), eq(subscriptions.stripeSubscriptionId, subscriptionId)))
-      .limit(1);
+    let subscription;
 
-    if (!subscription.length) {
-      throw new NotFoundError('Subscription not found');
+    if (subscriptionId) {
+      // Verify subscription belongs to user
+      subscription = await db
+        .select()
+        .from(subscriptions)
+        .where(and(eq(subscriptions.userId, userId), eq(subscriptions.stripeSubscriptionId, subscriptionId)))
+        .limit(1);
+    } else {
+      // Find active subscription for user
+      subscription = await db
+        .select()
+        .from(subscriptions)
+        .where(
+          and(
+            eq(subscriptions.userId, userId),
+            ne(subscriptions.status, 'canceled'),
+            isNotNull(subscriptions.stripeSubscriptionId)
+          )
+        )
+        .limit(1);
     }
 
-    await billingService.cancelSubscription(subscriptionId);
+    if (!subscription.length) {
+      throw new NotFoundError('Subscription not found or already canceled');
+    }
+
+    const stripeId = subscription[0].stripeSubscriptionId;
+    if (!stripeId) {
+      throw new NotFoundError('Subscription has no Stripe ID');
+    }
+
+    await billingService.cancelSubscription(stripeId);
 
     return reply.code(200).send({
       success: true,
