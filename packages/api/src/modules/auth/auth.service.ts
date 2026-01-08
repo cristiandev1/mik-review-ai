@@ -75,8 +75,40 @@ export class AuthService {
       apiKey: apiKeyValue,
     };
   }
-
   async login(input: LoginInput) {
+    // Find user
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, input.email))
+      .limit(1);
+
+    if (!user) {
+      throw new UnauthorizedError('Invalid email or password');
+    }
+
+    // Verify password
+    const isValidPassword = await bcrypt.compare(input.password, user.passwordHash || '');
+    if (!isValidPassword) {
+      throw new UnauthorizedError('Invalid email or password');
+    }
+
+    // Generate JWT token
+    const token = this.generateToken(user.id);
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        plan: user.currentPlan as 'trial' | 'hobby' | 'pro',
+        emailVerified: user.emailVerified,
+      },
+      token,
+    };
+  }
+  async login(input: LoginInput) {
+    console.log('Logging in with password:', input.password);
     // Find user
     const [user] = await db
       .select()
