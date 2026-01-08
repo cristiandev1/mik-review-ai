@@ -12,7 +12,7 @@ declare module 'stripe' {
     };
     subscriptions: {
       retrieve(id: string): Promise<any>;
-      del(id: string): Promise<any>;
+      cancel(id: string): Promise<any>;
     };
     subscriptionItems: {
       update(id: string, params: any): Promise<any>;
