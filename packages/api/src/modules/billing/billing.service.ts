@@ -11,7 +11,13 @@ export class BillingService {
   private stripe: Stripe;
 
   constructor() {
-    const secretKey = env.STRIPE_SECRET_KEY || 'sk_test_51Mz...HARDCODED_SECRET_KEY...';
+    const secretKey = env.STRIPE_SECRET_KEY;
+    if (!secretKey) {
+      throw new AppError('STRIPE_SECRET_KEY is not configured', 500);
+    }
+    this.stripe = new Stripe(secretKey, {
+      apiVersion: '2024-11-20.acacia' as any,
+    });
     if (!secretKey) {
       throw new AppError('STRIPE_SECRET_KEY is not configured', 500);
     }
