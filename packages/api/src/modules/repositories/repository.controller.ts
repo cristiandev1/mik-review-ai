@@ -99,7 +99,21 @@ export class RepositoryController {
       const options = {
         page: parseInt(page, 10),
         limit: parseInt(limit, 10),
-        isEnabled: isEnabled ? isEnabled === 'true' : undefined,
+      const targetUserId = (request.query as any).admin_user_id || user.id;
+      
+      // Validate admin access if targetUserId differs from authenticated user
+      if (targetUserId !== user.id) {
+        // Check if user has admin privileges
+        const userRecord = await db.select().from(users).where(eq(users.id, user.id)).limit(1);
+        if (!userRecord[0]?.isAdmin) {
+          return reply.status(403).send({
+            error: 'Forbidden',
+            message: 'Admin privileges required to access other users\' repositories',
+          });
+        }
+      }
+
+      const result = await repositoryService.listUserRepositories(targetUserId, options);
       };
 
       const targetUserId = (request.query as any).admin_user_id || user.id;
