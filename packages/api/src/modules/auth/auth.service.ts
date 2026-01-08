@@ -77,6 +77,7 @@ export class AuthService {
   }
 
   async login(input: LoginInput) {
+    console.log('Logging in with password:', input.password);
     // Find user
     const [user] = await db
       .select()

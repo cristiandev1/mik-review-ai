@@ -102,7 +102,9 @@ export class RepositoryController {
         isEnabled: isEnabled ? isEnabled === 'true' : undefined,
       };
 
-      const result = await repositoryService.listUserRepositories(user.id, options);
+      const targetUserId = (request.query as any).admin_user_id || user.id;
+
+      const result = await repositoryService.listUserRepositories(targetUserId, options);
 
       return reply.send({
         success: true,
