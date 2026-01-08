@@ -67,8 +67,8 @@ export class BillingService {
         },
       ],
       mode: 'subscription',
-      success_url: `${env.FRONTEND_URL}/billing?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${env.FRONTEND_URL}/billing`,
+      success_url: `${env.FRONTEND_URL}/dashboard/billing?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${env.FRONTEND_URL}/dashboard/billing`,
       metadata: {
         userId,
         plan,

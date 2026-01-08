@@ -172,38 +172,67 @@ export class BillingController {
    * Handle Stripe webhook
    */
   async handleWebhook(request: FastifyRequest, reply: FastifyReply) {
-    const signature = request.headers['stripe-signature'] as string;
-    const body = (request as any).rawBody || JSON.stringify(request.body);
+    try {
+      const signature = request.headers['stripe-signature'] as string;
 
-    const event = billingService.constructWebhookEvent(body, signature);
+      if (!signature) {
+        request.log.error('Missing stripe-signature header');
+        return reply.code(400).send({
+          success: false,
+          error: 'Missing stripe-signature header',
+        });
+      }
 
-    // Handle different event types
-    switch (event.type) {
-      case 'checkout.session.completed':
-        await billingService.handleCheckoutCompleted(event.data.object);
-        break;
+      const body = (request as any).rawBody || JSON.stringify(request.body);
 
-      case 'customer.subscription.updated':
-        await billingService.handleSubscriptionUpdated(event.data.object);
-        break;
+      request.log.info({ eventType: 'webhook_received' }, 'Stripe webhook received');
 
-      case 'customer.subscription.deleted':
-        await billingService.handleSubscriptionDeleted(event.data.object);
-        break;
+      const event = billingService.constructWebhookEvent(body, signature);
 
-      case 'invoice.payment_succeeded':
-        await billingService.handleInvoicePaymentSucceeded(event.data.object);
-        break;
+      request.log.info({ eventType: event.type, eventId: event.id }, 'Processing Stripe webhook event');
 
-      case 'invoice.payment_failed':
-        await billingService.handleInvoicePaymentFailed(event.data.object);
-        break;
+      // Handle different event types
+      switch (event.type) {
+        case 'checkout.session.completed':
+          await billingService.handleCheckoutCompleted(event.data.object);
+          request.log.info({ eventId: event.id }, 'Checkout session completed processed successfully');
+          break;
+
+        case 'customer.subscription.updated':
+          await billingService.handleSubscriptionUpdated(event.data.object);
+          request.log.info({ eventId: event.id }, 'Subscription updated processed successfully');
+          break;
+
+        case 'customer.subscription.deleted':
+          await billingService.handleSubscriptionDeleted(event.data.object);
+          request.log.info({ eventId: event.id }, 'Subscription deleted processed successfully');
+          break;
+
+        case 'invoice.payment_succeeded':
+          await billingService.handleInvoicePaymentSucceeded(event.data.object);
+          request.log.info({ eventId: event.id }, 'Invoice payment succeeded processed successfully');
+          break;
+
+        case 'invoice.payment_failed':
+          await billingService.handleInvoicePaymentFailed(event.data.object);
+          request.log.info({ eventId: event.id }, 'Invoice payment failed processed successfully');
+          break;
+
+        default:
+          request.log.info({ eventType: event.type, eventId: event.id }, 'Unhandled webhook event type');
+      }
+
+      return reply.code(200).send({
+        success: true,
+        received: true,
+      });
+    } catch (error: any) {
+      request.log.error({ error: error.message, stack: error.stack }, 'Error processing webhook');
+      return reply.code(400).send({
+        success: false,
+        error: error.message,
+      });
     }
-
-    return reply.code(200).send({
-      success: true,
-      received: true,
-    });
   }
 
   /**

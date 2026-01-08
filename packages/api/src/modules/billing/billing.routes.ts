@@ -50,7 +50,21 @@ export async function billingRoutes(fastify: FastifyInstance) {
   });
 
   // Webhook route (no auth - verified by Stripe signature)
+  // IMPORTANT: We need the raw body for Stripe signature verification
   fastify.post('/billing/webhook', {
+    preParsing: async (request, _reply, payload) => {
+      // Capture raw body for Stripe signature verification
+      const chunks: Buffer[] = [];
+      for await (const chunk of payload) {
+        chunks.push(chunk);
+      }
+      const rawBody = Buffer.concat(chunks);
+      (request as any).rawBody = rawBody.toString('utf8');
+
+      // Return a new readable stream with the same data
+      const { Readable } = await import('stream');
+      return Readable.from(Buffer.concat(chunks));
+    },
     handler: billingController.handleWebhook.bind(billingController),
   });
 }
