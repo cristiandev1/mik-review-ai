@@ -1,9 +1,10 @@
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import { db } from '../config/database.js';
 import { users, subscriptions, repositories, repositorySeats, usageTracking } from '../database/schema.js';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, desc } from 'drizzle-orm';
 import { AppError } from '../shared/errors/app-error.js';
 import { logger } from '../shared/utils/logger.js';
+import { nanoid } from 'nanoid';
 
 /**
  * Billing verification middleware
@@ -58,6 +59,7 @@ export async function verifyBillingAccess(
     .select()
     .from(subscriptions)
     .where(eq(subscriptions.userId, userId))
+    .orderBy(desc(subscriptions.createdAt))
     .limit(1);
 
   if (!subscriptionResult.length || subscriptionResult[0].status !== 'active') {
@@ -124,7 +126,7 @@ export async function verifyBillingAccess(
       // Assign new seat
       try {
         await db.insert(repositorySeats).values({
-          id: crypto.randomUUID().toString(),
+          id: nanoid(),
           repositoryId,
           developerGithubUsername,
           billingMonth: currentMonth,
@@ -217,7 +219,7 @@ export async function trackUsage(
     } else {
       // Create new record
       await db.insert(usageTracking).values({
-        id: crypto.randomUUID().toString(),
+        id: nanoid(),
         userId,
         repositoryId,
         developerGithubUsername,

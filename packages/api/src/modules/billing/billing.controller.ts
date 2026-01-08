@@ -9,7 +9,7 @@ import {
 } from './billing.schemas.js';
 import { db } from '../../config/database.js';
 import { users, subscriptions, repositories, repositorySeats, usageTracking } from '../../database/schema.js';
-import { eq, and, ne, isNotNull } from 'drizzle-orm';
+import { eq, and, ne, isNotNull, desc } from 'drizzle-orm';
 import { NotFoundError } from '../../shared/errors/app-error.js';
 
 export class BillingController {
@@ -29,6 +29,7 @@ export class BillingController {
       .select()
       .from(subscriptions)
       .where(eq(subscriptions.userId, userId))
+      .orderBy(desc(subscriptions.createdAt))
       .limit(1);
 
     const userData = user[0];
@@ -66,27 +67,46 @@ export class BillingController {
     const user = userRecord[0];
     const currentMonth = new Date().toISOString().slice(0, 7);
 
+    // Get subscription for seats calculation
+    const subscription = await db
+      .select()
+      .from(subscriptions)
+      .where(eq(subscriptions.userId, userId))
+      .orderBy(desc(subscriptions.createdAt))
+      .limit(1);
+
+    const seats = subscription[0]?.seatsPurchased || 1;
+
     // Determine plan limits
     // Free (trial): 3 PRs total (lifetime)
     // Hobby: 15 PRs/month per seat ($5/month)
     // Pro: 100 PRs/month per seat ($15/month)
     let prsLimit = -1; // Unlimited by default
     let tokensLimit = -1; // Unlimited by default
+    let prsUsed = 0;
+    let tokensUsed = 0;
 
-    if (user.currentPlan === 'hobby') {
-      prsLimit = 15; // Hobby: 15 PRs/month per seat
-    } else if (user.currentPlan === 'pro') {
-      prsLimit = 100; // Pro: 100 PRs/month per seat
+    if (user.currentPlan === 'trial') {
+      prsLimit = 3;
+      tokensLimit = 300000;
+      prsUsed = user.trialPrsUsed || 0;
+      tokensUsed = user.trialTokensUsed || 0;
+    } else {
+      if (user.currentPlan === 'hobby') {
+        prsLimit = 15 * seats; // Hobby: 15 PRs/month per seat
+      } else if (user.currentPlan === 'pro') {
+        prsLimit = 100 * seats; // Pro: 100 PRs/month per seat
+      }
+
+      // Get usage data for current month from usageTracking
+      const usageData = await db
+        .select()
+        .from(usageTracking)
+        .where(and(eq(usageTracking.userId, userId), eq(usageTracking.billingMonth, currentMonth)));
+
+      prsUsed = usageData.reduce((sum, u) => sum + (u.prsProcessed || 0), 0);
+      tokensUsed = usageData.reduce((sum, u) => sum + (u.tokensConsumed || 0), 0);
     }
-
-    // Get usage data for current month
-    const usageData = await db
-      .select()
-      .from(usageTracking)
-      .where(and(eq(usageTracking.userId, userId), eq(usageTracking.billingMonth, currentMonth)));
-
-    const prsUsed = usageData.reduce((sum, u) => sum + (u.prsProcessed || 0), 0);
-    const tokensUsed = usageData.reduce((sum, u) => sum + (u.tokensConsumed || 0), 0);
 
     return reply.code(200).send({
       success: true,
@@ -171,6 +191,7 @@ export class BillingController {
             isNotNull(subscriptions.stripeSubscriptionId)
           )
         )
+        .orderBy(desc(subscriptions.createdAt))
         .limit(1);
     }
 
