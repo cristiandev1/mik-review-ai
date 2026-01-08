@@ -1,6 +1,6 @@
 import { db } from '../../config/database.js';
 import { reviews, users } from '../../database/schema.js';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { reviewQueue, type ReviewJobData } from './review.queue.js';
 import type { CreateReviewInput } from './review.schemas.js';
@@ -43,6 +43,21 @@ export class ReviewService {
       );
     }
 
+    // Check if a review already exists for this PR (to avoid double counting on synchronize events)
+    const existingReview = await db
+      .select()
+      .from(reviews)
+      .where(
+        and(
+          eq(reviews.userId, userId),
+          eq(reviews.repository, input.repository),
+          eq(reviews.pullRequest, input.pullRequest)
+        )
+      )
+      .limit(1);
+
+    const isNewPR = existingReview.length === 0;
+
     // Create review record in database
     await db.insert(reviews).values({
       id: reviewId,
@@ -65,20 +80,22 @@ export class ReviewService {
       jobId: reviewId, // Use reviewId as jobId for easy lookup
     });
 
-    // Increment trial counter for trial plan users
-    if (user.currentPlan === 'trial') {
-      const newTrialCount = user.trialPrsUsed + 1;
-      await db
-        .update(users)
-        .set({
-          trialPrsUsed: newTrialCount,
-          requiresPayment: newTrialCount >= 3,
-          updatedAt: new Date(),
-        })
-        .where(eq(users.id, userId));
-    } else {
-      // For paid plans, use the rate limit service
-      await rateLimitService.incrementUsage(userId);
+    // Only increment counter if this is a NEW PR (not a synchronize event on existing PR)
+    if (isNewPR) {
+      if (user.currentPlan === 'trial') {
+        const newTrialCount = user.trialPrsUsed + 1;
+        await db
+          .update(users)
+          .set({
+            trialPrsUsed: newTrialCount,
+            requiresPayment: newTrialCount >= 3,
+            updatedAt: new Date(),
+          })
+          .where(eq(users.id, userId));
+      } else {
+        // For paid plans, use the rate limit service
+        await rateLimitService.incrementUsage(userId);
+      }
     }
 
     return {
