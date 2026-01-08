@@ -33,6 +33,24 @@ export default function BillingPage() {
     const sessionId = searchParams.get('session_id');
     if (sessionId) {
       setShowSuccessMessage(true);
+      
+      // Update local storage with fresh user data
+      const token = localStorage.getItem('token');
+      if (token) {
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/me`, {
+           headers: { 'Authorization': `Bearer ${token}` }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                localStorage.setItem('user', JSON.stringify(data.data));
+                // Reload to reflect changes in Sidebar/Layout
+                window.location.reload(); 
+            }
+        })
+        .catch(err => console.error('Failed to sync user data', err));
+      }
+
       // Refetch plan and usage data to reflect the new subscription
       refetchPlan();
       refetchUsage();
