@@ -160,14 +160,18 @@ export class BillingService {
    * Cancel a subscription
    */
   async cancelSubscription(subscriptionId: string) {
-    await this.stripe.subscriptions.cancel(subscriptionId);
+    // Update subscription to cancel at period end instead of immediate cancellation
+    const subscription = await (this.stripe.subscriptions as any).update(subscriptionId, {
+      cancel_at_period_end: true,
+    });
 
     // Update database
     await db
       .update(subscriptions)
       .set({
-        status: 'canceled',
-        canceledAt: new Date(),
+        status: subscription.status,
+        canceledAt: subscription.canceled_at ? new Date(subscription.canceled_at * 1000) : null,
+        currentPeriodEnd: new Date(subscription.current_period_end * 1000),
       })
       .where(eq(subscriptions.stripeSubscriptionId, subscriptionId));
   }
