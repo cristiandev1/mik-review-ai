@@ -160,7 +160,7 @@ export class BillingService {
    * Cancel a subscription
    */
   async cancelSubscription(subscriptionId: string) {
-    await this.stripe.subscriptions.del(subscriptionId);
+    await this.stripe.subscriptions.cancel(subscriptionId);
 
     // Update database
     await db
